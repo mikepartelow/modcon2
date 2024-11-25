@@ -7,6 +7,7 @@ use std::io::{self, Read, Seek, SeekFrom};
 pub struct Module {
     title: String,
     samples: Vec<Sample>,
+    size: usize,
 }
 
 struct SampleHeader {
@@ -43,6 +44,7 @@ impl fmt::Display for Module {
             let name = String::from_utf8_lossy(&s.header.name).to_string();
             write!(f, "\n  sample {:02}: [{}]", i, name)?;
         }
+        write!(f, "\nsize: {}b", self.size)?;
         Ok(())
     }
 }
@@ -50,9 +52,13 @@ impl fmt::Display for Module {
 pub fn read_module(filename: &str) -> io::Result<Module> {
     let mut file = File::open(filename)?;
     let title = read_title(&mut file)?;
+    let samples = read_samples(&mut file)?;
+    let size = 20 + samples.len() * std::mem::size_of::<Sample>();
+
     Ok(Module {
         title: title,
-        samples: read_samples(&mut file)?,
+        samples: samples,
+        size: size,
     })
 }
 

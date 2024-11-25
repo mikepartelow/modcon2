@@ -1,8 +1,13 @@
 use filer::hexdump::hex_dump;
 use filer::tracker;
+use rodio::Source;
 use std::env;
 use std::io;
 use std::process;
+
+use rodio::{source::SineWave, OutputStream, Sink};
+use std::io::BufWriter;
+use std::time::Duration;
 
 // https://www.aes.id.au/modformat.html
 // https://modarchive.org/index.php?request=view_by_moduleid&query=48107
@@ -16,6 +21,25 @@ use std::process;
 // print(tm.title())
 // for s in tm.samples():
 //   print(s)
+
+fn noise() {
+    // Create a new output stream and stream handle
+    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
+
+    // Create a new sink
+    let sink = Sink::try_new(&stream_handle).unwrap();
+
+    // // Generate a sine wave of 440 Hz (A4 note)
+    // let source = SineWave::new(440);
+
+    // Play the sine wave for 2 seconds
+    sink.append(SineWave::new(440).take_duration(Duration::from_secs(1)));
+    sink.append(SineWave::new(420).take_duration(Duration::from_secs(1)));
+    sink.append(SineWave::new(440).take_duration(Duration::from_secs(1)));
+
+    // Sleep the thread to let the sound play
+    std::thread::sleep(Duration::from_secs(3));
+}
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -42,6 +66,8 @@ fn main() -> io::Result<()> {
             format!("Custom error: Invalid command: {command}"),
         ));
     }
+
+    noise();
 
     Ok(())
 }
