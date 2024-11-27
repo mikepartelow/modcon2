@@ -14,6 +14,9 @@ use std::time::Duration;
 // https://web.archive.org/web/20100921225940/http://io.debian.net/~tar/debian/xmp/xmp-2.7.1/docs/formats/Ultimate_Soundtracker-format.txt
 // https://github.com/mikepartelow/rust-chess/tree/main/app/src
 
+// https://github.com/cmatsuoka/oxdz
+// https://github.com/libxmp/libxmp
+
 // Up Next:
 
 // rename Module to TrackerModule
@@ -67,7 +70,7 @@ fn main() -> io::Result<()> {
         ));
     }
 
-    noise();
+    // noise();
 
     Ok(())
 }

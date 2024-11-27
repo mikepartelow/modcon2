@@ -1,6 +1,6 @@
 use std::{fs, io::Read};
 
-const LINELEN: usize = 16;
+pub const LINELEN: usize = 16;
 
 fn is_printable_ascii(byte: u8) -> bool {
     byte >= 32 && byte <= 126
@@ -10,6 +10,21 @@ pub fn hex_dump(filename: &str) {
     let mut file = fs::File::open(filename)
         .expect("FIXME: use of expect is generally discouraged, but there was an error");
 
+    hex_dump_file(&mut file);
+}
+
+pub fn hex_dump_buffer(chunk: &Vec<u8>, text: &mut Vec<u8>, c: &mut usize) {
+    for b in chunk {
+        print!("0x{:02x?} ", b);
+        text.push(*b);
+        *c += 1;
+        if *c > LINELEN {
+            print_text(text, c);
+        }
+    }
+}
+
+fn hex_dump_file(file: &mut fs::File) {
     let chunk_size = 0x4000;
 
     // FIXME: make this an object
@@ -28,14 +43,8 @@ pub fn hex_dump(filename: &str) {
             break;
         }
 
-        for b in chunk {
-            print!("0x{:02x?} ", b);
-            text.push(b);
-            c += 1;
-            if c > LINELEN {
-                print_text(&mut text, &mut c);
-            }
-        }
+        hex_dump_buffer(&chunk, &mut text, &mut c);
+
         if n < chunk_size {
             break;
         }

@@ -1,13 +1,26 @@
+use core::num;
+use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
 
+use crate::hexdump::hex_dump_buffer;
+use crate::hexdump::LINELEN;
+
 // https://www.aes.id.au/modformat.html
+// https://github.com/8bitbubsy/pt2-clone/?tab=readme-ov-file
+// https://wiki.multimedia.cx/index.php/Protracker_Module
+
+// TODO:
+// - focus on knulla
+// - play 1 sample
+// - refactor/learn
+// - play whole song
+// - play other songs
 
 pub struct Module {
     title: String,
     samples: Vec<Sample>,
-    size: usize,
 }
 
 struct SampleHeader {
@@ -21,18 +34,19 @@ struct SampleHeader {
 
 struct Sample {
     header: SampleHeader,
-    data: [u8; 1024],
+    data: Vec<u8>,
 }
 
 impl SampleHeader {
     fn from_bytes(bytes: &[u8]) -> Self {
         Self {
             name: bytes[0..22].try_into().unwrap(),
-            length: u16::from_le_bytes([bytes[22], bytes[23]]),
+            // FIXME: why is this "2 *"" ?
+            length: 2 * u16::from_be_bytes([bytes[22], bytes[23]]),
             finetune: bytes[24],
             volume: bytes[25],
-            loop_offset: u16::from_le_bytes([bytes[26], bytes[27]]),
-            loop_length: u16::from_le_bytes([bytes[28], bytes[29]]),
+            loop_offset: u16::from_be_bytes([bytes[26], bytes[27]]),
+            loop_length: u16::from_be_bytes([bytes[28], bytes[29]]),
         }
     }
 }
@@ -44,7 +58,6 @@ impl fmt::Display for Module {
             let name = String::from_utf8_lossy(&s.header.name).to_string();
             write!(f, "\n  sample {:02}: [{}]", i, name)?;
         }
-        write!(f, "\nsize: {}b", self.size)?;
         Ok(())
     }
 }
@@ -53,12 +66,10 @@ pub fn read_module(filename: &str) -> io::Result<Module> {
     let mut file = File::open(filename)?;
     let title = read_title(&mut file)?;
     let samples = read_samples(&mut file)?;
-    let size = 20 + samples.len() * std::mem::size_of::<Sample>();
 
     Ok(Module {
         title: title,
         samples: samples,
-        size: size,
     })
 }
 
@@ -80,12 +91,36 @@ fn read_samples(file: &mut File) -> io::Result<Vec<Sample>> {
 
         samples.push(Sample {
             header: SampleHeader::from_bytes(&buffer),
-            data: [0; 1024],
+            data: Vec::new(),
         });
     }
 
-    // FIXME: actually, we need to read and parse this stuff
-    file.seek(SeekFrom::Current(1 + 1 + 128))?;
+    let mut buffer = vec![0, 2];
+    file.read_exact(&mut buffer);
+    // println!("buffie");
+    // let mut c = 0;
+    // let mut text = Vec::with_capacity(LINELEN);
+    // hex_dump_buffer(&buffer, &mut text, &mut c);
+
+    let mut pattern_table = vec![0; 128];
+    file.read_exact(&mut pattern_table)?;
+
+    let mut c = 0;
+    let mut text = Vec::with_capacity(LINELEN);
+    hex_dump_buffer(&pattern_table, &mut text, &mut c);
+    println!("");
+
+    // this works for shofixti and knulla but not supox
+    let mut num_patterns: usize = 0;
+    for pidx in pattern_table {
+        if pidx as usize > num_patterns {
+            num_patterns = pidx as usize;
+        }
+    }
+    num_patterns = num_patterns + 1;
+    // end of "this works for"
+
+    println!("num_patterns: {}", num_patterns);
 
     let mut buffer: Vec<u8> = vec![0; 4];
     file.read_exact(&mut buffer)?;
@@ -99,9 +134,16 @@ fn read_samples(file: &mut File) -> io::Result<Vec<Sample>> {
         ));
     }
 
+    // FIXME: read pattern data
+    let _ = file.seek(SeekFrom::Current((num_patterns * 1024).try_into().unwrap()));
+
     for s in samples.iter_mut() {
+        s.data = vec![0; s.header.length as usize];
         file.read_exact(&mut s.data)?;
     }
+
+    // FIXME: determine expected size, then compare with expected
+    println!("pos: {}", file.stream_position().unwrap());
 
     Ok(samples)
 }
