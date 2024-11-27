@@ -1,12 +1,11 @@
-use filer::hexdump::hex_dump;
-use filer::tracker;
+use filer::player;
+use filer::track;
 use rodio::Source;
 use std::env;
 use std::io;
 use std::process;
 
 use rodio::{source::SineWave, OutputStream, Sink};
-use std::io::BufWriter;
 use std::time::Duration;
 
 // https://www.aes.id.au/modformat.html
@@ -46,28 +45,15 @@ fn noise() {
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        eprintln!("Usage: {} <filename> <hexdump|module>", args[0]);
+    if args.len() != 2 {
+        eprintln!("Usage: {} <filename>", args[0]);
         process::exit(1);
     }
 
     let filename = &args[1];
-    let command = &args[2];
-
-    // FIXME: not like this (maybe use a library? stdlib?)
-    if command == "hexdump" {
-        hex_dump(filename);
-    } else if command == "module" {
-        match tracker::read_module(filename) {
-            Ok(module) => println!("{}", module),
-            Err(e) => eprintln!("Error reading {}: {}", filename, e),
-        }
-    } else {
-        // FIXME: this prints ugly
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("Custom error: Invalid command: {command}"),
-        ));
+    match track::read_module(filename) {
+        Ok(module) => player::play(module),
+        Err(e) => eprintln!("Error reading {}: {}", filename, e),
     }
 
     // noise();

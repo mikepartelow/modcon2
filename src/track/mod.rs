@@ -1,5 +1,3 @@
-use core::num;
-use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
