@@ -17,11 +17,11 @@ use crate::hexdump::LINELEN;
 // - play other songs
 
 pub struct Module {
-    title: String,
-    samples: Vec<Sample>,
+    pub title: String,
+    pub samples: Vec<Sample>,
 }
 
-struct SampleHeader {
+pub struct SampleHeader {
     name: [u8; 22],
     length: u16,
     finetune: u8,
@@ -30,9 +30,9 @@ struct SampleHeader {
     loop_length: u16,
 }
 
-struct Sample {
-    header: SampleHeader,
-    data: Vec<u8>,
+pub struct Sample {
+    pub header: SampleHeader,
+    pub data: Vec<u8>,
 }
 
 impl SampleHeader {
@@ -103,10 +103,10 @@ fn read_samples(file: &mut File) -> io::Result<Vec<Sample>> {
     let mut pattern_table = vec![0; 128];
     file.read_exact(&mut pattern_table)?;
 
-    let mut c = 0;
-    let mut text = Vec::with_capacity(LINELEN);
-    hex_dump_buffer(&pattern_table, &mut text, &mut c);
-    println!("");
+    // let mut c = 0;
+    // let mut text = Vec::with_capacity(LINELEN);
+    // hex_dump_buffer(&pattern_table, &mut text, &mut c);
+    // println!("");
 
     // this works for shofixti and knulla but not supox
     let mut num_patterns: usize = 0;
