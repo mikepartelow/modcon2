@@ -1,36 +1,18 @@
 use rodio::{OutputStream, Sink, Source};
 use std::collections::VecDeque;
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 use std::thread;
 use std::time::{self, Duration};
 
-use crate::{hexdump, track};
+use crate::track;
 
 // https://github.com/Prezzodaman/pymod/blob/main/pymod/pymod.py
 // https://www.ocf.berkeley.edu/~eek/index.html/tiny_examples/ptmod/
 
-pub fn play(m: track::Module) -> Result<(), Box<dyn std::error::Error>> {
-    // println!("{}", m);
-    // println!("---");
+pub fn play_samples(m: track::Module) -> Result<(), Box<dyn std::error::Error>> {
+    for sample in m.samples {
+        let sample_data = sample.data;
 
-    for sample_num in 2..3 {
-        // let mut c = 0;
-        // let mut text = Vec::with_capacity(hexdump::LINELEN);
-
-        // 6 is a techno drum
-        // f is a synth
-        // let sample_num = 6;
-
-        // next up:
-        // - try the python pymod.py
-        // - if it works, example sample[sample_num] in python
-        // - compare to ours
-
-        // hexdump::hex_dump_buffer(&m.samples[sample_num].data, &mut text, &mut c);
-
-        let sample_data = &m.samples[sample_num].data;
-        println!("  eh : {}", m.samples[sample_num].data[4]);
-        // Convert signed 8-bit to unsigned 8-bit PCM format
         let unsigned_data: VecDeque<u8> = sample_data
             .iter()
             .map(|&b| ((b as u16 + 128) & 255) as u8)
@@ -41,7 +23,8 @@ pub fn play(m: track::Module) -> Result<(), Box<dyn std::error::Error>> {
 
         let source = RawPcmSource {
             samples: Cursor::new(unsigned_data),
-            sample_rate: 44100, // Sample rate, adjust as needed
+            // FIXME: how is this supposed to be determined? it's apparently NOT 44.1Khz for knulla
+            sample_rate: (44100.0 * 0.36) as u32, // Sample rate, adjust as needed
         };
 
         sink.append(source);
@@ -63,17 +46,10 @@ impl Iterator for RawPcmSource {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // println!(">>> {}", self.samples.get_mut()[5]); // this seems correct. what?!
-
         let sample_byte = self.samples.get_mut().pop_front()?;
-
-        // FIXME: this doesn't match unsigned_data, why not?
-        println!("->{}", sample_byte);
 
         let sample_byte = sample_byte as i16; // Convert to i16 for arithmetic
         let sample = (sample_byte - 128) as f32 / 128.0; // Perform the operation
-
-        println!("  {}", sample);
 
         Some(sample)
     }
@@ -85,7 +61,7 @@ impl Source for RawPcmSource {
     }
 
     fn channels(&self) -> u16 {
-        2 // Mono
+        1 // Mono
     }
 
     fn sample_rate(&self) -> u32 {
