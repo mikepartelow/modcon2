@@ -85,7 +85,7 @@ impl Source for RawPcmSource {
     }
 
     fn channels(&self) -> u16 {
-        1 // Mono
+        2 // Mono
     }
 
     fn sample_rate(&self) -> u32 {
