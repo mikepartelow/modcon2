@@ -9,6 +9,10 @@ use crate::hexdump::LINELEN;
 // https://github.com/8bitbubsy/pt2-clone/?tab=readme-ov-file
 // https://wiki.multimedia.cx/index.php/Protracker_Module
 
+// https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L204
+// https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L828
+// https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L909
+
 // TODO:
 // - focus on knulla
 // - play 1 sample
@@ -18,7 +22,13 @@ use crate::hexdump::LINELEN;
 
 pub struct Module {
     pub title: String,
+    pub pattern_table: Vec<u8>,
+    pub patterns: Vec<Pattern>,
     pub samples: Vec<Sample>,
+}
+
+pub struct Pattern {
+    pub data: [u8; 1024],
 }
 
 pub struct SampleHeader {
@@ -63,11 +73,13 @@ impl fmt::Display for Module {
 pub fn read_module(filename: &str) -> io::Result<Module> {
     let mut file = File::open(filename)?;
     let title = read_title(&mut file)?;
-    let samples = read_samples(&mut file)?;
+    let (pattern_table, patterns, samples) = read_samples(&mut file)?;
 
     Ok(Module {
         title: title,
         samples: samples,
+        pattern_table: pattern_table,
+        patterns: patterns,
     })
 }
 
@@ -80,7 +92,8 @@ fn read_title(file: &mut File) -> io::Result<String> {
 // FIXME: there could be 15 in some versions, have to check for M.K. marker
 const NUM_SAMPLES: usize = 31;
 
-fn read_samples(file: &mut File) -> io::Result<Vec<Sample>> {
+fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sample>)> {
+    let mut patterns: Vec<Pattern> = Vec::new();
     let mut samples: Vec<Sample> = Vec::new();
 
     for _ in 1..=NUM_SAMPLES {
@@ -110,9 +123,9 @@ fn read_samples(file: &mut File) -> io::Result<Vec<Sample>> {
 
     // this works for shofixti and knulla but not supox
     let mut num_patterns: usize = 0;
-    for pidx in pattern_table {
-        if pidx as usize > num_patterns {
-            num_patterns = pidx as usize;
+    for pidx in &pattern_table {
+        if *pidx as usize > num_patterns {
+            num_patterns = *pidx as usize;
         }
     }
     num_patterns = num_patterns + 1;
@@ -132,8 +145,13 @@ fn read_samples(file: &mut File) -> io::Result<Vec<Sample>> {
         ));
     }
 
-    // FIXME: read pattern data
-    let _ = file.seek(SeekFrom::Current((num_patterns * 1024).try_into().unwrap()));
+    for _ in 0..num_patterns {
+        let mut buffer: Vec<u8> = vec![0; 1024];
+        file.read_exact(&mut buffer)?;
+        patterns.push(Pattern {
+            data: buffer.try_into().unwrap(),
+        })
+    }
 
     for s in samples.iter_mut() {
         s.data = vec![0; s.header.length as usize];
@@ -141,7 +159,10 @@ fn read_samples(file: &mut File) -> io::Result<Vec<Sample>> {
     }
 
     // FIXME: determine expected size, then compare with expected
-    println!("pos: {}", file.stream_position().unwrap());
+    let pos = file.stream_position().unwrap();
+    file.seek(SeekFrom::End(0))?;
+    let filelen = file.stream_position().unwrap();
+    assert!(pos == filelen);
 
-    Ok(samples)
+    Ok((pattern_table, patterns, samples))
 }

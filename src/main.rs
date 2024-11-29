@@ -52,7 +52,8 @@ fn main() -> io::Result<()> {
 
     let filename = &args[1];
     match track::read_module(filename) {
-        Ok(module) => player::play_samples(module).unwrap(),
+        // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
+        Ok(module) => player::play(&module).unwrap(),
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
     }
 
