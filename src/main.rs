@@ -101,10 +101,10 @@ async fn main() {
 
                             let wave = SineWave::new(f);
 
-                            let duration_ms = 40;
-                            // if chan_idx == 1 || chan_idx == 2 {
-                            sink.append(wave.take_duration(Duration::from_millis(duration_ms)));
-                            // }
+                            let duration_ms = 20 * 6;
+                            if chan_idx == 1 || chan_idx == 2 {
+                                sink.append(wave.take_duration(Duration::from_millis(duration_ms)));
+                            }
 
                             f_prevs[chan_idx] = f;
                         }
