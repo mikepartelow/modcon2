@@ -103,6 +103,10 @@ async fn main() {
                     }
 
                     println!("{} {}", print_prefix, row_str);
+
+                    println!("  FIXME: now play freq (ignore sample for now)! according to the rules, we will sustain it until we see a new note to play.");
+                    println!("         pick a channel, then learn how to mix");
+
                     interval.tick().await; // FIXME: would a sleep be simpler? is any delay even necessary? does playing N ticks of queued audio provide the necessary delay?
                 }
             }
