@@ -1,3 +1,3 @@
 pub mod hexdump;
-pub mod player;
+pub mod note;
 pub mod track;

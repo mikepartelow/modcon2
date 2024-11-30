@@ -1,34 +1,57 @@
+use crate::note;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
-
-use crate::hexdump::hex_dump_buffer;
-use crate::hexdump::LINELEN;
-
-// https://www.aes.id.au/modformat.html
-// https://github.com/8bitbubsy/pt2-clone/?tab=readme-ov-file
-// https://wiki.multimedia.cx/index.php/Protracker_Module
-
-// https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L204
-// https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L828
-// https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L909
-
-// TODO:
-// - focus on knulla
-// - play 1 sample
-// - refactor/learn
-// - play whole song
-// - play other songs
+use std::str::FromStr;
 
 pub struct Module {
     pub title: String,
     pub pattern_table: Vec<u8>,
     pub patterns: Vec<Pattern>,
     pub samples: Vec<Sample>,
+    pattern_ptr: usize,
 }
 
 pub struct Pattern {
     pub data: [u8; 1024],
+    ptr: usize,
+}
+
+impl Iterator for Pattern {
+    type Item = String;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.ptr >= self.data.len() {
+            self.ptr = 0;
+            return None;
+        }
+
+        let row = self.ptr / (4 * 4); // FIXME: replace magic numbers
+        let mut row_str: String =
+            String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
+
+        // FIXME: replace magic numbers
+        for i in (self.ptr..self.ptr + 4 * 4).step_by(4) {
+            let channel: [u8; 4] = self.data[i..i + 4]
+                .try_into()
+                .expect("FIXME: use of expect is discouraged");
+
+            // Combine the first and third byte to get the sample (wwwwyyyy)
+            let sample = (channel[0] & 0xF0) | ((channel[2] & 0xF0) >> 4);
+            //  // Combine the first and second byte to get the period (xxxxxxxxxxxx)
+            let period = ((channel[0] & 0x0F) as u16) << 8 | (channel[1] as u16);
+            //  // Combine the third and fourth byte to get the effect (zzzzzzzzzzzz)
+            let effect = ((channel[2] & 0x0F) as u16) << 8 | (channel[3] as u16);
+
+            let (freq, note) = note::get_freq(period).expect("FIXME: use of expect is discouraged");
+
+            row_str += &format!("|{} {:02x} {:04x} {:04x}", note, sample, period, effect);
+        }
+        row_str += &"|";
+        self.ptr += 4 * 4; // FIXME: replace magic numbers
+
+        Some(row_str)
+    }
 }
 
 pub struct SampleHeader {
@@ -80,6 +103,7 @@ pub fn read_module(filename: &str) -> io::Result<Module> {
         samples: samples,
         pattern_table: pattern_table,
         patterns: patterns,
+        pattern_ptr: 0,
     })
 }
 
@@ -150,6 +174,7 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
         file.read_exact(&mut buffer)?;
         patterns.push(Pattern {
             data: buffer.try_into().unwrap(),
+            ptr: 0,
         })
     }
 

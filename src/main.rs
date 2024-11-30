@@ -1,12 +1,9 @@
-use filer::player;
 use filer::track;
 use rodio::Source;
 use std::env;
-use std::io;
 use std::process;
 
 use rodio::{source::SineWave, OutputStream, Sink};
-use std::time::Duration;
 
 // https://www.aes.id.au/modformat.html
 // https://modarchive.org/index.php?request=view_by_moduleid&query=48107
@@ -43,7 +40,29 @@ fn noise() {
     std::thread::sleep(Duration::from_secs(3));
 }
 
-fn main() -> io::Result<()> {
+// fn main() -> io::Result<()> {
+//     let args: Vec<String> = env::args().collect();
+//     if args.len() != 2 {
+//         eprintln!("Usage: {} <filename>", args[0]);
+//         process::exit(1);
+//     }
+
+//     let filename = &args[1];
+//     match track::read_module(filename) {
+//         // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
+//         Ok(mut module) => player::play(&mut module).unwrap(),
+//         Err(e) => eprintln!("Error reading {}: {}", filename, e),
+//     }
+
+//     // noise();
+
+//     Ok(())
+// }
+
+use tokio::time::{self, Duration};
+
+#[tokio::main]
+async fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         eprintln!("Usage: {} <filename>", args[0]);
@@ -53,11 +72,34 @@ fn main() -> io::Result<()> {
     let filename = &args[1];
     match track::read_module(filename) {
         // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
-        Ok(module) => player::play(&module).unwrap(),
+        Ok(mut module) => {
+            let mut interval = time::interval(Duration::from_millis(20 * 6));
+
+            for (i, &pidx) in module.pattern_table.iter().enumerate() {
+                if i == 73 {
+                    break; // FIXME: knulla-specific hack
+                }
+
+                // FIXME: iterate to m.num_patterns - the actual number of patterns, not 128
+                let print_prefix = format!(
+                    "{:03}/{:03} P{:03} ",
+                    i,
+                    module.pattern_table.len() - 1,
+                    pidx
+                ); // FIXME: rustier than this
+
+                let p: &mut track::Pattern = &mut module.patterns[pidx as usize];
+                while let Some(row_str) = p.next() {
+                    println!("{} {}", print_prefix, row_str);
+                    interval.tick().await;
+                }
+            }
+        }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
     }
-
-    // noise();
-
-    Ok(())
 }
+// // https://github.com/Prezzodaman/pymod/blob/main/pymod/pymod.py
+// // https://www.ocf.berkeley.edu/~eek/index.html/tiny_examples/ptmod/
+// // https://github.com/cmatsuoka/tracker-history
+
+// //         // https://modarchive.org/forums/index.php?topic=2709.0
