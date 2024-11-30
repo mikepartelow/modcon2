@@ -2,7 +2,6 @@ use crate::note;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
-use std::str::FromStr;
 
 pub struct Module {
     pub title: String,
