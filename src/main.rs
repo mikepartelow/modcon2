@@ -2,6 +2,7 @@ use filer::track;
 use rodio::Source;
 use std::env;
 use std::process;
+use std::str::FromStr;
 
 use rodio::{source::SineWave, OutputStream, Sink};
 
@@ -77,7 +78,7 @@ async fn main() {
 
             for (i, &pidx) in module.pattern_table.iter().enumerate() {
                 if i == 73 {
-                    break; // FIXME: knulla-specific hack
+                    break; // FIXME: knulla-specific hack, replace with module.num_patterns
                 }
 
                 // FIXME: iterate to m.num_patterns - the actual number of patterns, not 128
@@ -89,9 +90,20 @@ async fn main() {
                 ); // FIXME: rustier than this
 
                 let p: &mut track::Pattern = &mut module.patterns[pidx as usize];
-                while let Some(row_str) = p.next() {
+                while let Some((row, channels)) = p.next() {
+                    let mut row_str = String::from_str(&format!("R{:02}:", row))
+                        .expect("FIXME: expect is discouraged");
+
+                    for ch in channels {
+                        row_str += &format!(
+                            "|{} {:02x} {:04x} {:04x}",
+                            ch.note, ch.sample, ch.period, ch.effect
+                        );
+                        row_str += &"|";
+                    }
+
                     println!("{} {}", print_prefix, row_str);
-                    interval.tick().await;
+                    interval.tick().await; // FIXME: would a sleep be simpler? is any delay even necessary? does playing N ticks of queued audio provide the necessary delay?
                 }
             }
         }

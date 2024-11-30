@@ -17,8 +17,16 @@ pub struct Pattern {
     ptr: usize,
 }
 
+pub struct Channel {
+    pub note: String,
+    pub freq: f32,
+    pub sample: u8,
+    pub period: u16,
+    pub effect: u16,
+}
+
 impl Iterator for Pattern {
-    type Item = String;
+    type Item = (usize, Vec<Channel>); // FIXME: should probably not be a vector but a fixed length slice
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.ptr >= self.data.len() {
@@ -26,9 +34,9 @@ impl Iterator for Pattern {
             return None;
         }
 
+        let mut items = Vec::new();
+
         let row = self.ptr / (4 * 4); // FIXME: replace magic numbers
-        let mut row_str: String =
-            String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
 
         // FIXME: replace magic numbers
         for i in (self.ptr..self.ptr + 4 * 4).step_by(4) {
@@ -45,12 +53,17 @@ impl Iterator for Pattern {
 
             let (freq, note) = note::get_freq(period).expect("FIXME: use of expect is discouraged");
 
-            row_str += &format!("|{} {:02x} {:04x} {:04x}", note, sample, period, effect);
+            items.push(Channel {
+                note: note,
+                freq: freq,
+                sample: sample,
+                period: period,
+                effect: effect,
+            });
         }
-        row_str += &"|";
         self.ptr += 4 * 4; // FIXME: replace magic numbers
 
-        Some(row_str)
+        Some((row, items))
     }
 }
 
