@@ -40,8 +40,11 @@ async fn main() {
 
             let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
-            // Create a new sink
-            let sink = Sink::try_new(&stream_handle).unwrap();
+            let mut channel_sinks = Vec::new();
+
+            for _ in 0..4 {
+                channel_sinks.push(Sink::try_new(&stream_handle).unwrap());
+            }
 
             for (i, &pidx) in module.pattern_table.iter().enumerate() {
                 if i == 73 {
@@ -59,7 +62,10 @@ async fn main() {
                     pidx
                 ); // FIXME: rustier than this
 
-                let mut f_prev: u32 = 0;
+                let mut f_prevs = Vec::new();
+                for _ in 0..4 {
+                    f_prevs.push(0);
+                }
 
                 let p: &mut track::Pattern = &mut module.patterns[pidx as usize];
                 while let Some((row, channels)) = p.next() {
@@ -76,35 +82,38 @@ async fn main() {
 
                     println!("{} {}", print_prefix, row_str);
 
-                    let chan_idx = 1;
-                    let ch = &channels[chan_idx];
+                    for chan_idx in 0..4 {
+                        let ch = &channels[chan_idx];
+                        let f_prev = f_prevs[chan_idx];
+                        let sink = &channel_sinks[chan_idx];
 
-                    if ch.period == 0 && f_prev == 0 {
-                        // no change from "not playing yet"
-                        // NOOP
-                        println!("  NOOP");
-                    } else {
-                        let f = if ch.period == 0 {
-                            f_prev
+                        if ch.period == 0 && f_prev == 0 {
+                            // no change from "not playing yet"
+                            // NOOP
+                            println!("  NOOP");
                         } else {
-                            (100000.0 / (ch.period as f32)) as u32
-                        };
-                        println!("  {} -> {}", ch.period, f);
+                            let f: u32 = if ch.period == 0 {
+                                f_prev
+                            } else {
+                                (100000.0 / (ch.period as f32)) as u32
+                            };
+                            println!("  {} -> {}", ch.period, f);
 
-                        let wave = SineWave::new(f);
+                            let wave = SineWave::new(f);
 
-                        sink.append(wave.take_duration(Duration::from_millis(40)));
+                            let duration_ms = 40;
+                            // if chan_idx == 1 || chan_idx == 2 {
+                            sink.append(wave.take_duration(Duration::from_millis(duration_ms)));
+                            // }
 
-                        f_prev = f;
-
-                        // println!("  FIXME: now play freq (ignore sample for now)! according to the rules, we will sustain it until we see a new note to play.");
-                        // println!("         pick a channel, then learn how to mix");
+                            f_prevs[chan_idx] = f;
+                        }
                     }
 
                     interval.tick().await; // FIXME: would a sleep be simpler? is any delay even necessary? does playing N ticks of queued audio provide the necessary delay?
                 }
             }
-            sink.sleep_until_end();
+            channel_sinks[0].sleep_until_end();
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
     }
