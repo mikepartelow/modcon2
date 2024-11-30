@@ -22,44 +22,6 @@ use rodio::{source::SineWave, OutputStream, Sink};
 // for s in tm.samples():
 //   print(s)
 
-fn noise() {
-    // Create a new output stream and stream handle
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-
-    // Create a new sink
-    let sink = Sink::try_new(&stream_handle).unwrap();
-
-    // // Generate a sine wave of 440 Hz (A4 note)
-    // let source = SineWave::new(440);
-
-    // Play the sine wave for 2 seconds
-    sink.append(SineWave::new(440).take_duration(Duration::from_secs(1)));
-    sink.append(SineWave::new(420).take_duration(Duration::from_secs(1)));
-    sink.append(SineWave::new(440).take_duration(Duration::from_secs(1)));
-
-    // Sleep the thread to let the sound play
-    std::thread::sleep(Duration::from_secs(3));
-}
-
-// fn main() -> io::Result<()> {
-//     let args: Vec<String> = env::args().collect();
-//     if args.len() != 2 {
-//         eprintln!("Usage: {} <filename>", args[0]);
-//         process::exit(1);
-//     }
-
-//     let filename = &args[1];
-//     match track::read_module(filename) {
-//         // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
-//         Ok(mut module) => player::play(&mut module).unwrap(),
-//         Err(e) => eprintln!("Error reading {}: {}", filename, e),
-//     }
-
-//     // noise();
-
-//     Ok(())
-// }
-
 use tokio::time::{self, Duration};
 
 #[tokio::main]
@@ -84,6 +46,9 @@ async fn main() {
             for (i, &pidx) in module.pattern_table.iter().enumerate() {
                 if i == 73 {
                     break; // FIXME: knulla-specific hack, replace with module.num_patterns
+                }
+                if i < 4 {
+                    continue;
                 }
 
                 // FIXME: iterate to m.num_patterns - the actual number of patterns, not 128
@@ -111,7 +76,7 @@ async fn main() {
 
                     println!("{} {}", print_prefix, row_str);
 
-                    let chan_idx = 2;
+                    let chan_idx = 1;
                     let ch = &channels[chan_idx];
 
                     if ch.period == 0 && f_prev == 0 {
@@ -128,7 +93,7 @@ async fn main() {
 
                         let wave = SineWave::new(f);
 
-                        sink.append(wave.take_duration(Duration::from_millis(50)));
+                        sink.append(wave.take_duration(Duration::from_millis(40)));
 
                         f_prev = f;
 
@@ -144,8 +109,9 @@ async fn main() {
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
     }
 }
+
 // // https://github.com/Prezzodaman/pymod/blob/main/pymod/pymod.py
 // // https://www.ocf.berkeley.edu/~eek/index.html/tiny_examples/ptmod/
 // // https://github.com/cmatsuoka/tracker-history
 
-// //         // https://modarchive.org/forums/index.php?topic=2709.0
+// // https://modarchive.org/forums/index.php?topic=2709.0
