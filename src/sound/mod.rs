@@ -5,33 +5,61 @@ use std::time::{self, Duration};
 
 #[derive(Clone)]
 pub struct RawPcmSource {
-    pub samples: Cursor<Vec<u8>>,
+    pub samples: Vec<u8>,
     pub sample_rate: u32,
+    pub taken: u64,
+    pub loop_it: bool,
+    // FIXME: make ptr private and add a New() fn
+    pub ptr: usize,
+    pub name: String,
 }
 
 impl RawPcmSource {
-    pub fn advance(&mut self, bytes: u64) {
-        self.samples.seek(SeekFrom::Current(bytes as i64)).unwrap();
+    pub fn advance(&mut self, bytes: usize) {
+        if self.samples.len() == 0 {
+            return;
+        }
+        if self.ptr + bytes > self.samples.len() {
+            if self.loop_it {
+                self.ptr = (self.ptr + bytes) % self.samples.len();
+            } else {
+                self.ptr = self.samples.len();
+            }
+        } else {
+            self.ptr += bytes;
+        }
+        println!(
+            "    len: {} bytes: {} ptr: {} loop_it: {} name: {}",
+            self.samples.len(),
+            bytes,
+            self.ptr,
+            self.loop_it,
+            self.name,
+        );
     }
-}
-
-fn pop_front<T>(vec: &mut Vec<T>) -> Option<T> {
-    if vec.is_empty() {
-        return None;
-    }
-    Some(vec.remove(0))
 }
 
 impl Iterator for RawPcmSource {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // println!(">>> {}", self.samples.get_mut()[5]); // this seems correct. what?!
-
-        let sample_byte = pop_front(self.samples.get_mut())?;
+        if self.samples.len() == 0 {
+            return None;
+        }
+        if self.ptr >= self.samples.len() {
+            if self.loop_it {
+                self.ptr = 0;
+            } else {
+                return None;
+            }
+        };
+        let sample_byte = self.samples[self.ptr];
 
         let sample_byte = sample_byte as i16; // Convert to i16 for arithmetic
         let sample = (sample_byte - 128) as f32 / 128.0; // Perform the operation
+
+        self.taken += 1;
+        self.ptr += 1;
 
         Some(sample)
     }

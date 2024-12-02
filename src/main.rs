@@ -36,11 +36,13 @@ async fn main() {
         // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
         Ok(mut module) => {
             if command == "" {
-                player::play_module(&mut module).await;
+                player::play_module(&mut module, 2).await;
             } else if command == "samples" || command == "ss" {
                 let period_c3 = 214;
                 let period_b3 = 113;
                 player::play_samples(&mut module, period_c3);
+            } else if command == "notes" || command == "nn" {
+                player::play_module_notes(&mut module, 2).await;
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
