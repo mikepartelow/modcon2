@@ -67,12 +67,12 @@ impl Iterator for Pattern {
 }
 
 pub struct SampleHeader {
-    name: [u8; 22],
-    length: u16,
-    finetune: u8,
-    volume: u8,
-    loop_offset: u16,
-    loop_length: u16,
+    pub name: [u8; 22],
+    pub length: u16,
+    pub finetune: u8,
+    pub volume: u8,
+    pub loop_offset: u16,
+    pub loop_length: u16,
 }
 
 pub struct Sample {
