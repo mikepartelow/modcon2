@@ -71,7 +71,16 @@ pub async fn play_module(module: &mut track::Module) {
                     };
                     println!("  {} -> {}", ch.period, f);
 
-                    let wave = SineWave::new(f);
+                    // FIXME: memoize playing sample and playing note
+                    let period = if ch.period != 0 { ch.period } else { 214 };
+
+                    let sample_rate = 7093789.2 / ((period as u16 * 2) as f32);
+                    let sample_data = module.samples[ch.sample as usize].data.clone();
+
+                    let wave = RawPcmSource {
+                        samples: Cursor::new(sample_data),
+                        sample_rate: sample_rate as u32,
+                    };
 
                     let duration_ms = 20 * 6;
                     if chan_idx == 1 || chan_idx == 2 {
