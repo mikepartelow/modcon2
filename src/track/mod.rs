@@ -191,8 +191,15 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
     }
 
     for s in samples.iter_mut() {
-        s.data = vec![0; s.header.length as usize];
-        file.read_exact(&mut s.data)?;
+        let mut data = vec![0; s.header.length as usize];
+
+        file.read_exact(&mut data)?;
+
+        // Convert signed 8-bit to unsigned 8-bit PCM format
+        s.data = data
+            .iter()
+            .map(|&b| ((b as u16 + 128) & 255) as u8)
+            .collect();
     }
 
     // FIXME: determine expected size, then compare with expected

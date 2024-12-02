@@ -38,7 +38,9 @@ async fn main() {
             if command == "" {
                 player::play_module(&mut module).await;
             } else if command == "samples" || command == "ss" {
-                player::play_samples(&mut module);
+                let period_c3 = 214;
+                let period_b3 = 113;
+                player::play_samples(&mut module, period_c3);
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),

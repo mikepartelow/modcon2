@@ -8,7 +8,7 @@ use std::thread;
 use tokio::time::{self, Duration};
 
 pub async fn play_module(module: &mut track::Module) {
-    let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary
+    let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
@@ -88,7 +88,7 @@ pub async fn play_module(module: &mut track::Module) {
     channel_sinks[0].sleep_until_end();
 }
 
-pub fn play_samples(module: &mut track::Module) {
+pub fn play_samples(module: &mut track::Module, period: u8) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
     let sink = Sink::try_new(&stream_handle).unwrap();
@@ -101,20 +101,24 @@ pub fn play_samples(module: &mut track::Module) {
             String::from_utf8_lossy(&sample.header.name).to_string()
         );
 
-        // FIXME: put this in sample::new()
-        let sample_data = &sample.data;
-        // Convert signed 8-bit to unsigned 8-bit PCM format
-        let unsigned_data: Vec<u8> = sample_data
-            .iter()
-            .map(|&b| ((b as u16 + 128) & 255) as u8)
-            .collect();
-
         let (_stream, stream_handle) = OutputStream::try_default().unwrap();
         let sink = Sink::try_new(&stream_handle).unwrap();
 
+        // https://wiki.multimedia.cx/index.php/Protracker_Module
+        // To get the actual note frequency, divide the Amiga base clock (70ns or 8363*428) by the period number.
+        // https://www.aes.id.au/modformat.html
+        // For PAL machines
+        //   the clock rate is 7093789.2 Hz and for NTSC machines it is
+        //   7159090.5 Hz. When the clock rate is divided by twice the
+        //   period number for the pitch it will give the rate to send the
+        //   data to the channel, eg. for a PAL machine sending a note at
+        //   C2 (period 428), the rate is 7093789.2/856 ~= 8287.1369
+
+        let sample_rate = 7093789.2 / ((period as u16 * 2) as f32);
+
         let source = RawPcmSource {
-            samples: Cursor::new(unsigned_data),
-            sample_rate: 44100, // Sample rate, adjust as needed
+            samples: Cursor::new(sample.data.clone()),
+            sample_rate: sample_rate as u32,
         };
 
         sink.append(source);
