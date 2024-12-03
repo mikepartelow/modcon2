@@ -63,7 +63,8 @@ impl Iterator for RawPcmSource {
         }
         if self.ptr >= self.samples.len() {
             if self.loop_it {
-                self.ptr = 0;
+                println!("LOOP IT");
+                self.ptr = self.loop_offset; // FIXME: validate this leap of faith
             } else {
                 return None;
             }

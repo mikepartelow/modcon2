@@ -1,15 +1,10 @@
+use filer::device::Device;
 use filer::player;
 use filer::track;
+use rodio::Source;
+use rodio::{source::SineWave, OutputStream, Sink};
 use std::env;
 use std::process;
-
-// https://www.aes.id.au/modformat.html
-// https://modarchive.org/index.php?request=view_by_moduleid&query=48107
-// https://web.archive.org/web/20100921225940/http://io.debian.net/~tar/debian/xmp/xmp-2.7.1/docs/formats/Ultimate_Soundtracker-format.txt
-// https://github.com/mikepartelow/rust-chess/tree/main/app/src
-
-// https://github.com/cmatsuoka/oxdz
-// https://github.com/libxmp/libxmp
 
 // Up Next:
 
@@ -19,7 +14,7 @@ use std::process;
 // for s in tm.samples():
 //   print(s)
 
-use tokio::time::{self, Duration};
+use tokio::time::{self, sleep, Duration};
 
 #[tokio::main]
 async fn main() {
@@ -36,13 +31,28 @@ async fn main() {
         // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
         Ok(mut module) => {
             if command == "" {
-                player::play_module(&mut module, 2).await;
+                player::play_module(&mut module).await;
             } else if command == "samples" || command == "ss" {
                 let period_c3 = 214;
                 let period_b3 = 113;
                 player::play_samples(&mut module, period_c3);
             } else if command == "notes" || command == "nn" {
                 player::play_module_notes(&mut module, 2).await;
+            } else if command == "device" || command == "dd" {
+                let mut d = Device::new();
+
+                let source = SineWave::new(130);
+
+                d.latch(0, source.take_duration(Duration::from_secs(2)));
+
+                println!("sleeping");
+                let _ = sleep(Duration::from_secs(1)).await;
+                println!("slept");
+
+                let source = SineWave::new(260);
+                d.latch(0, source.take_duration(Duration::from_secs(2)));
+
+                d.play();
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),

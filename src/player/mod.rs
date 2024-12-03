@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::thread;
 use tokio::time::{self, Duration};
 
-pub async fn play_module(module: &mut track::Module, play_channel: usize) {
+pub async fn play_module(module: &mut track::Module) {
     let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
@@ -53,10 +53,6 @@ pub async fn play_module(module: &mut track::Module, play_channel: usize) {
             println!("{} {}", print_prefix, row_str);
 
             for chan_idx in 0..4 {
-                if chan_idx != play_channel {
-                    // continue;
-                }
-
                 let ch = &channels[chan_idx];
                 let p_prev = p_prevs[chan_idx];
                 let sink = &channel_sinks[chan_idx];
@@ -68,10 +64,16 @@ pub async fn play_module(module: &mut track::Module, play_channel: usize) {
                     (ch.sample - 1) as usize
                 };
 
+                println!(
+                    "  chan_idx: {} ch.period: {} p_prev: {} ch.sample: {}",
+                    chan_idx, ch.period, p_prev, ch.sample
+                );
+
                 if ch.period == 0 && p_prev == 0 {
                     // no change from "not playing yet"
                     // NOOP
-                } else if ch.sample > 0 {
+                    println!("NOOP");
+                } else if ch.period != 0 && ch.sample > 0 {
                     let period = if ch.period == 0 { p_prev } else { ch.period };
                     if ch.period != 0 {
                         let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
@@ -88,8 +90,13 @@ pub async fn play_module(module: &mut track::Module, play_channel: usize) {
                                 .into(),
                         )
                         .expect("FIXME");
+                        println!(
+                            "this guy: {}",
+                            module.samples[sample_idx as usize].header.loop_offset != 1
+                        );
                         w_prevs[chan_idx] = new_source;
                     } else {
+                        println!("  looping");
                         continue;
                     }
 
@@ -99,14 +106,6 @@ pub async fn play_module(module: &mut track::Module, play_channel: usize) {
                             .clone()
                             .take_duration(Duration::from_millis(duration_ms)),
                     );
-
-                    let mut w = w_prevs[chan_idx].clone();
-
-                    // this doesn't work because we don't know at this point how many were taken
-                    // maybe we will know on the next itreation
-                    // also, we may have needed to loop
-
-                    w_prevs[chan_idx] = w;
 
                     p_prevs[chan_idx] = period;
                 }
