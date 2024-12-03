@@ -1,28 +1,26 @@
+use crate::device::Device;
+
 use crate::sound::RawPcmSource;
 use crate::track::{self};
 use rodio::Source;
 use rodio::{source::SineWave, OutputStream, Sink};
 use std::str::FromStr;
 use std::thread;
-use tokio::time::{self, Duration};
+use tokio::time::{self, sleep, Duration};
 
+// FIXME: this should take a sample factory, get rid of play_module_notes
 pub async fn play_module(module: &mut track::Module) {
+    let mut device = Device::new(module.num_channels);
+
     let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
-
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-
-    let mut channel_sinks = Vec::new();
-
-    for _ in 0..4 {
-        channel_sinks.push(Sink::try_new(&stream_handle).unwrap());
-    }
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
         if i == 73 {
-            break; // FIXME: knulla-specific hack, replace with module.num_patterns
+            // FIXME!
+            // println!("FIXME: pidx==0 is not the way");
+            break; // FIXME: add a pattern table (aka order) iterator (or iterator generator) to module
         }
-
-        // FIXME: iterate to m.num_patterns - the actual number of patterns, not 128
+        // println!("!!!!!! i: {} pattern: {}", i, pidx);
         let print_prefix = format!(
             "{:03}/{:03} P{:03} ",
             i,
@@ -31,14 +29,13 @@ pub async fn play_module(module: &mut track::Module) {
         ); // FIXME: rustier than this
 
         let mut p_prevs = Vec::new();
-        let mut w_prevs = Vec::new();
         for _ in 0..4 {
             p_prevs.push(0);
-            w_prevs.push(RawPcmSource::zero()); // FIXME: make this Optional (Some/None) -- zero is not rusty
         }
 
         let p: &mut track::Pattern = &mut module.patterns[pidx as usize];
         while let Some((row, channels)) = p.next() {
+            // FIXME: why not make this an iterator for consistency?
             let mut row_str =
                 String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
 
@@ -47,15 +44,13 @@ pub async fn play_module(module: &mut track::Module) {
                     "|{} {:02x} {:04x} {:04x}",
                     ch.note, ch.sample, ch.period, ch.effect
                 );
-                row_str += &"|";
             }
-
+            row_str += &"|";
             println!("{} {}", print_prefix, row_str);
 
             for chan_idx in 0..4 {
                 let ch = &channels[chan_idx];
                 let p_prev = p_prevs[chan_idx];
-                let sink = &channel_sinks[chan_idx];
                 let sample_idx: usize = if ch.sample == 0 {
                     0
                 } else {
@@ -64,15 +59,15 @@ pub async fn play_module(module: &mut track::Module) {
                     (ch.sample - 1) as usize
                 };
 
-                println!(
-                    "  chan_idx: {} ch.period: {} p_prev: {} ch.sample: {}",
-                    chan_idx, ch.period, p_prev, ch.sample
-                );
+                // println!(
+                //     "  chan_idx: {} ch.period: {} p_prev: {} ch.sample: {}",
+                //     chan_idx, ch.period, p_prev, ch.sample
+                // );
 
                 if ch.period == 0 && p_prev == 0 {
                     // no change from "not playing yet"
                     // NOOP
-                    println!("NOOP");
+                    // println!("NOOP");
                 } else if ch.period != 0 && ch.sample > 0 {
                     let period = if ch.period == 0 { p_prev } else { ch.period };
                     if ch.period != 0 {
@@ -90,31 +85,28 @@ pub async fn play_module(module: &mut track::Module) {
                                 .into(),
                         )
                         .expect("FIXME");
-                        println!(
-                            "this guy: {}",
-                            module.samples[sample_idx as usize].header.loop_offset != 1
-                        );
-                        w_prevs[chan_idx] = new_source;
-                    } else {
-                        println!("  looping");
-                        continue;
+                        // println!(
+                        //     "this guy: {}",
+                        //     module.samples[sample_idx as usize].header.loop_offset != 1
+                        // );
+                        device.latch(chan_idx, new_source);
+                    } else if ch.sample == 0 {
+                        println!("STOP!!");
+                        device.stop(chan_idx);
                     }
-
-                    let duration_ms = 20 * 6;
-                    sink.append(
-                        w_prevs[chan_idx]
-                            .clone()
-                            .take_duration(Duration::from_millis(duration_ms)),
-                    );
 
                     p_prevs[chan_idx] = period;
                 }
             }
 
             interval.tick().await; // FIXME: would a sleep be simpler? is any delay even necessary? does playing N ticks of queued audio provide the necessary delay?
+                                   // println!("    tick");
         }
     }
-    channel_sinks[0].sleep_until_end();
+    println!("exit1");
+    device.wait();
+    // FIXME: we never get to exit2
+    println!("exit2");
 }
 
 pub fn play_samples(module: &mut track::Module, period: u8) {
@@ -156,86 +148,4 @@ pub fn play_samples(module: &mut track::Module, period: u8) {
         let delay = time::Duration::from_millis(500);
         thread::sleep(delay);
     }
-}
-
-pub async fn play_module_notes(module: &mut track::Module, play_channel: usize) {
-    let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary
-
-    let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-
-    let mut channel_sinks = Vec::new();
-
-    for _ in 0..4 {
-        channel_sinks.push(Sink::try_new(&stream_handle).unwrap());
-    }
-
-    for (i, &pidx) in module.pattern_table.iter().enumerate() {
-        if i == 73 {
-            break; // FIXME: knulla-specific hack, replace with module.num_patterns
-        }
-
-        // FIXME: iterate to m.num_patterns - the actual number of patterns, not 128
-        let print_prefix = format!(
-            "{:03}/{:03} P{:03} ",
-            i,
-            module.pattern_table.len() - 1,
-            pidx
-        ); // FIXME: rustier than this
-
-        let mut f_prevs = Vec::new();
-        for _ in 0..4 {
-            f_prevs.push(0);
-        }
-
-        let p: &mut track::Pattern = &mut module.patterns[pidx as usize];
-        while let Some((row, channels)) = p.next() {
-            let mut row_str =
-                String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
-
-            for ch in &channels {
-                row_str += &format!(
-                    "|{} {:02x} {:04x} {:04x}",
-                    ch.note, ch.sample, ch.period, ch.effect
-                );
-                row_str += &"|";
-            }
-
-            println!("{} {}", print_prefix, row_str);
-
-            for chan_idx in 0..4 {
-                let ch = &channels[chan_idx];
-                let f_prev = f_prevs[chan_idx];
-                let sink = &channel_sinks[chan_idx];
-
-                if ch.period == 0 && f_prev == 0 {
-                    // no change from "not playing yet"
-                    // NOOP
-                } else {
-                    let f: u32 = if ch.period == 0 {
-                        f_prev
-                    } else {
-                        (100000.0 / (ch.period as f32)) as u32
-                    };
-                    println!("  {} -> {}", ch.period, f);
-
-                    let wave = SineWave::new(f);
-
-                    let duration_ms = 20 * 6;
-                    if chan_idx == play_channel {
-                        let sample_idx = ch.sample - 1;
-                        sink.append(wave.take_duration(Duration::from_millis(duration_ms)));
-                        println!(
-                            "  sample: {} / {}",
-                            sample_idx, module.samples[sample_idx as usize].header.name,
-                        );
-                    }
-
-                    f_prevs[chan_idx] = f;
-                }
-            }
-
-            interval.tick().await; // FIXME: would a sleep be simpler? is any delay even necessary? does playing N ticks of queued audio provide the necessary delay?
-        }
-    }
-    channel_sinks[0].sleep_until_end();
 }

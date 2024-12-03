@@ -1,8 +1,6 @@
 use crate::Error;
-use rodio::{OutputStream, Sink, Source};
-use std::io::{Cursor, Read};
-use std::io::{Seek, SeekFrom};
-use std::time::{self, Duration};
+use rodio::Source;
+use std::time::Duration;
 
 #[derive(Clone)]
 pub struct RawPcmSource {
@@ -63,7 +61,8 @@ impl Iterator for RawPcmSource {
         }
         if self.ptr >= self.samples.len() {
             if self.loop_it {
-                println!("LOOP IT");
+                // println!("FIXME: LOOP IT {}", self.name);
+                // FIXME: after first full playthrough, loop only up to sample.loop_length
                 self.ptr = self.loop_offset; // FIXME: validate this leap of faith
             } else {
                 return None;

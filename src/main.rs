@@ -39,43 +39,6 @@ async fn main() {
                 let period_c3 = 214;
                 let period_b3 = 113;
                 player::play_samples(&mut module, period_c3);
-            } else if command == "notes" || command == "nn" {
-                player::play_module_notes(&mut module, 2).await;
-            } else if command == "device" || command == "dd" {
-                let mut d = Device::new();
-
-                let source = SineWave::new(130);
-
-                d.latch(0, source.take_duration(Duration::from_secs(2)));
-
-                println!("sleeping");
-                let _ = sleep(Duration::from_secs(1)).await;
-                println!("slept");
-
-                let source = SineWave::new(260);
-                d.latch(0, source.take_duration(Duration::from_secs(2)));
-
-                let _ = sleep(Duration::from_secs(1)).await;
-                let rate = (7093789.2 / ((214 as u16 * 2) as f32)) as u32;
-
-                let sample = &module.samples[1];
-
-                let source = RawPcmSource::new(
-                    sample.header.name.to_string(),
-                    sample.data.clone(),
-                    rate,
-                    true,
-                    0,
-                )
-                .expect("FIXME");
-
-                d.latch(1, source);
-
-                let _ = sleep(Duration::from_secs(2)).await;
-                let source = SineWave::new(260);
-                d.latch(1, source.take_duration(Duration::from_secs(2)));
-
-                d.wait();
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),

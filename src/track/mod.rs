@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
 
 pub struct Module {
+    pub num_channels: usize,
     pub title: String,
     pub pattern_table: Vec<u8>,
     pub patterns: Vec<Pattern>,
     pub samples: Vec<Sample>,
-    pattern_ptr: usize,
 }
 
 pub struct Pattern {
@@ -112,11 +112,11 @@ pub fn read_module(filename: &str) -> io::Result<Module> {
     let (pattern_table, patterns, samples) = read_samples(&mut file)?;
 
     Ok(Module {
+        num_channels: 4, // FIXME: magic number
         title: title,
         samples: samples,
         pattern_table: pattern_table,
         patterns: patterns,
-        pattern_ptr: 0,
     })
 }
 
@@ -207,7 +207,10 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
     let pos = file.stream_position().unwrap();
     file.seek(SeekFrom::End(0))?;
     let filelen = file.stream_position().unwrap();
-    assert!(pos == filelen);
+    // assert!(pos == filelen);
+    if pos != filelen {
+        println!("WARNING!!!!!11")
+    }
 
     Ok((pattern_table, patterns, samples))
 }
