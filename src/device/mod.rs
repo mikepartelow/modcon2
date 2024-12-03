@@ -39,7 +39,9 @@ impl Device {
         self.sinks[channel_idx].append(source);
     }
 
-    pub fn play(&mut self) {
-        self.sinks[0].sleep_until_end();
+    pub fn wait(&mut self) {
+        for sink in &self.sinks {
+            sink.sleep_until_end();
+        }
     }
 }

@@ -1,10 +1,13 @@
 use filer::device::Device;
 use filer::player;
+use filer::sound::RawPcmSource;
+
 use filer::track;
 use rodio::Source;
 use rodio::{source::SineWave, OutputStream, Sink};
 use std::env;
 use std::process;
+use tokio::time::Duration;
 
 // Up Next:
 
@@ -14,7 +17,7 @@ use std::process;
 // for s in tm.samples():
 //   print(s)
 
-use tokio::time::{self, sleep, Duration};
+use tokio::time::{self, sleep};
 
 #[tokio::main]
 async fn main() {
@@ -52,7 +55,27 @@ async fn main() {
                 let source = SineWave::new(260);
                 d.latch(0, source.take_duration(Duration::from_secs(2)));
 
-                d.play();
+                let _ = sleep(Duration::from_secs(1)).await;
+                let rate = (7093789.2 / ((214 as u16 * 2) as f32)) as u32;
+
+                let sample = &module.samples[1];
+
+                let source = RawPcmSource::new(
+                    sample.header.name.to_string(),
+                    sample.data.clone(),
+                    rate,
+                    true,
+                    0,
+                )
+                .expect("FIXME");
+
+                d.latch(1, source);
+
+                let _ = sleep(Duration::from_secs(2)).await;
+                let source = SineWave::new(260);
+                d.latch(1, source.take_duration(Duration::from_secs(2)));
+
+                d.wait();
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
