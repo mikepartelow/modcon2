@@ -1,8 +1,7 @@
 use crate::sound::RawPcmSource;
-use crate::track::{self, Sample};
+use crate::track::{self};
 use rodio::Source;
 use rodio::{source::SineWave, OutputStream, Sink};
-use std::io::Cursor;
 use std::str::FromStr;
 use std::thread;
 use tokio::time::{self, Duration};
@@ -22,9 +21,6 @@ pub async fn play_module(module: &mut track::Module, play_channel: usize) {
         if i == 73 {
             break; // FIXME: knulla-specific hack, replace with module.num_patterns
         }
-        if i < 4 {
-            continue;
-        }
 
         // FIXME: iterate to m.num_patterns - the actual number of patterns, not 128
         let print_prefix = format!(
@@ -38,14 +34,7 @@ pub async fn play_module(module: &mut track::Module, play_channel: usize) {
         let mut w_prevs = Vec::new();
         for _ in 0..4 {
             p_prevs.push(0);
-            w_prevs.push(RawPcmSource {
-                samples: Vec::new(),
-                sample_rate: 0,
-                taken: 0,
-                ptr: 0,
-                loop_it: true,
-                name: "".to_string(),
-            });
+            w_prevs.push(RawPcmSource::zero()); // FIXME: make this Optional (Some/None) -- zero is not rusty
         }
 
         let p: &mut track::Pattern = &mut module.patterns[pidx as usize];
@@ -82,26 +71,23 @@ pub async fn play_module(module: &mut track::Module, play_channel: usize) {
                 if ch.period == 0 && p_prev == 0 {
                     // no change from "not playing yet"
                     // NOOP
-                    println!("  NOOP");
                 } else if ch.sample > 0 {
                     let period = if ch.period == 0 { p_prev } else { ch.period };
-                    println!("     period: {}", period);
                     if ch.period != 0 {
-                        let sample_rate = 7093789.2 / ((period as u16 * 2) as f32);
-                        let sample_data = module.samples[sample_idx].data.clone();
+                        let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
+                        let samples = &module.samples[sample_idx].data; // FIXME: what??
 
-                        let new_source = RawPcmSource {
-                            samples: sample_data,
-                            sample_rate: sample_rate as u32,
-                            taken: 0,
-                            ptr: 0,
-                            loop_it: module.samples[sample_idx as usize].header.loop_length != 1,
-                            name: String::from_utf8_lossy(
-                                &module.samples[sample_idx as usize].header.name,
-                            )
-                            .to_string(),
-                        };
-                        println!("  NEW");
+                        let new_source = RawPcmSource::new(
+                            module.samples[sample_idx as usize].header.name.to_string(),
+                            samples.to_vec(), // FIXME: what??
+                            rate,
+                            module.samples[sample_idx as usize].header.loop_offset != 1,
+                            module.samples[sample_idx as usize]
+                                .header
+                                .loop_offset
+                                .into(),
+                        )
+                        .expect("FIXME");
                         w_prevs[chan_idx] = new_source;
                     } else {
                         continue;
@@ -120,8 +106,6 @@ pub async fn play_module(module: &mut track::Module, play_channel: usize) {
                     // maybe we will know on the next itreation
                     // also, we may have needed to loop
 
-                    // w.advance(4000);
-                    println!("   ptr: {}", w.ptr);
                     w_prevs[chan_idx] = w;
 
                     p_prevs[chan_idx] = period;
@@ -141,11 +125,7 @@ pub fn play_samples(module: &mut track::Module, period: u8) {
 
     for i in 0..module.samples.len() {
         let sample = &module.samples[i];
-        println!(
-            "Sample {:02}: {}",
-            i,
-            String::from_utf8_lossy(&sample.header.name).to_string()
-        );
+        println!("Sample {:02}: {}", i, sample.header.name);
 
         let (_stream, stream_handle) = OutputStream::try_default().unwrap();
         let sink = Sink::try_new(&stream_handle).unwrap();
@@ -160,16 +140,16 @@ pub fn play_samples(module: &mut track::Module, period: u8) {
         //   data to the channel, eg. for a PAL machine sending a note at
         //   C2 (period 428), the rate is 7093789.2/856 ~= 8287.1369
 
-        let sample_rate = 7093789.2 / ((period as u16 * 2) as f32);
+        let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
 
-        let source = RawPcmSource {
-            samples: sample.data.clone(),
-            sample_rate: sample_rate as u32,
-            taken: 0,
-            ptr: 0,
-            loop_it: false,
-            name: String::from_utf8_lossy(&sample.header.name).to_string(),
-        };
+        let source = RawPcmSource::new(
+            sample.header.name.to_string(),
+            sample.data.clone(),
+            rate,
+            false,
+            0,
+        )
+        .expect("FIXME");
 
         sink.append(source);
         sink.sleep_until_end();
@@ -193,9 +173,6 @@ pub async fn play_module_notes(module: &mut track::Module, play_channel: usize) 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
         if i == 73 {
             break; // FIXME: knulla-specific hack, replace with module.num_patterns
-        }
-        if i < 4 {
-            continue;
         }
 
         // FIXME: iterate to m.num_patterns - the actual number of patterns, not 128
@@ -234,7 +211,6 @@ pub async fn play_module_notes(module: &mut track::Module, play_channel: usize) 
                 if ch.period == 0 && f_prev == 0 {
                     // no change from "not playing yet"
                     // NOOP
-                    println!("  NOOP");
                 } else {
                     let f: u32 = if ch.period == 0 {
                         f_prev
@@ -251,11 +227,7 @@ pub async fn play_module_notes(module: &mut track::Module, play_channel: usize) 
                         sink.append(wave.take_duration(Duration::from_millis(duration_ms)));
                         println!(
                             "  sample: {} / {}",
-                            sample_idx,
-                            String::from_utf8_lossy(
-                                &module.samples[sample_idx as usize].header.name
-                            )
-                            .to_string()
+                            sample_idx, module.samples[sample_idx as usize].header.name,
                         );
                     }
 

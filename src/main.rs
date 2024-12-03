@@ -48,14 +48,3 @@ async fn main() {
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
     }
 }
-
-// // https://github.com/Prezzodaman/pymod/blob/main/pymod/pymod.py
-// // https://www.ocf.berkeley.edu/~eek/index.html/tiny_examples/ptmod/
-// // https://github.com/cmatsuoka/tracker-history
-
-// // https://modarchive.org/forums/index.php?topic=2709.0
-
-// https://github.com/xor2003/wicked-player
-// https://github.com/gotracker/playback
-
-// https://github.com/gotracker/playback/blob/main/filter/amigafilter.go#L41

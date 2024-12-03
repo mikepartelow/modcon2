@@ -1,3 +1,4 @@
+use crate::Error;
 use rodio::{OutputStream, Sink, Source};
 use std::io::{Cursor, Read};
 use std::io::{Seek, SeekFrom};
@@ -5,37 +6,51 @@ use std::time::{self, Duration};
 
 #[derive(Clone)]
 pub struct RawPcmSource {
-    pub samples: Vec<u8>,
-    pub sample_rate: u32,
-    pub taken: u64,
-    pub loop_it: bool,
-    // FIXME: make ptr private and add a New() fn
-    pub ptr: usize,
     pub name: String,
+
+    loop_it: bool,
+    loop_offset: usize,
+    ptr: usize,
+    rate: u32,
+    samples: Vec<f32>,
 }
 
 impl RawPcmSource {
-    pub fn advance(&mut self, bytes: usize) {
-        if self.samples.len() == 0 {
-            return;
+    pub fn zero() -> Self {
+        RawPcmSource {
+            loop_it: false,
+            loop_offset: 0,
+            name: "".to_string(),
+            ptr: 0,
+            rate: 0,
+            samples: Vec::new(),
         }
-        if self.ptr + bytes > self.samples.len() {
-            if self.loop_it {
-                self.ptr = (self.ptr + bytes) % self.samples.len();
-            } else {
-                self.ptr = self.samples.len();
-            }
-        } else {
-            self.ptr += bytes;
+    }
+
+    pub fn new(
+        name: String,
+        samples: Vec<u8>,
+        rate: u32,
+        loop_it: bool,
+        loop_offset: usize,
+    ) -> Result<Self, Error> {
+        if samples.is_empty() {
+            return Err(Error::Sample("0 length sample".to_string()));
         }
-        println!(
-            "    len: {} bytes: {} ptr: {} loop_it: {} name: {}",
-            self.samples.len(),
-            bytes,
-            self.ptr,
-            self.loop_it,
-            self.name,
-        );
+
+        let f32_samples = samples
+            .iter()
+            .map(|b| (*b as i16 - 128) as f32 / 128.0)
+            .collect();
+
+        Ok(RawPcmSource {
+            loop_it: loop_it,
+            loop_offset: loop_offset,
+            name: name,
+            ptr: 0,
+            rate: rate,
+            samples: f32_samples,
+        })
     }
 }
 
@@ -53,15 +68,9 @@ impl Iterator for RawPcmSource {
                 return None;
             }
         };
-        let sample_byte = self.samples[self.ptr];
-
-        let sample_byte = sample_byte as i16; // Convert to i16 for arithmetic
-        let sample = (sample_byte - 128) as f32 / 128.0; // Perform the operation
-
-        self.taken += 1;
         self.ptr += 1;
 
-        Some(sample)
+        Some(self.samples[self.ptr - 1])
     }
 }
 
@@ -71,12 +80,11 @@ impl Source for RawPcmSource {
     }
 
     fn channels(&self) -> u16 {
-        // 1 is correct here
-        1 // Mono
+        1
     }
 
     fn sample_rate(&self) -> u32 {
-        self.sample_rate
+        self.rate
     }
 
     fn total_duration(&self) -> Option<Duration> {

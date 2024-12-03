@@ -67,7 +67,7 @@ impl Iterator for Pattern {
 }
 
 pub struct SampleHeader {
-    pub name: [u8; 22],
+    pub name: String,
     pub length: u16,
     pub finetune: u8,
     pub volume: u8,
@@ -81,9 +81,11 @@ pub struct Sample {
 }
 
 impl SampleHeader {
+    pub const SIZE: usize = 22 + 2 + 1 + 1 + 2 + 2;
+
     fn from_bytes(bytes: &[u8]) -> Self {
         Self {
-            name: bytes[0..22].try_into().unwrap(),
+            name: String::from_utf8_lossy(bytes[0..22].try_into().unwrap()).to_string(),
             // FIXME: why is this "2 *"" ?
             length: 2 * u16::from_be_bytes([bytes[22], bytes[23]]),
             finetune: bytes[24],
@@ -98,8 +100,7 @@ impl fmt::Display for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "title: [{}]", self.title)?;
         for (i, s) in self.samples.iter().enumerate() {
-            let name = String::from_utf8_lossy(&s.header.name).to_string();
-            write!(f, "\n  sample {:02}: [{}]", i, name)?;
+            write!(f, "\n  sample {:02}: [{}]", i, s.header.name)?;
         }
         Ok(())
     }
@@ -133,7 +134,7 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
     let mut samples: Vec<Sample> = Vec::new();
 
     for _ in 1..=NUM_SAMPLES {
-        let mut buffer = vec![0; std::mem::size_of::<SampleHeader>()];
+        let mut buffer = vec![0; SampleHeader::SIZE];
         file.read_exact(&mut buffer)?;
 
         samples.push(Sample {
@@ -143,7 +144,7 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
     }
 
     let mut buffer = vec![0, 2];
-    file.read_exact(&mut buffer);
+    let _ = file.read_exact(&mut buffer);
     // println!("buffie");
     // let mut c = 0;
     // let mut text = Vec::with_capacity(LINELEN);
