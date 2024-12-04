@@ -1,13 +1,8 @@
-use filer::device::Device;
 use filer::player;
-use filer::sound::RawPcmSource;
 
 use filer::track;
-use rodio::Source;
-use rodio::{source::SineWave, OutputStream, Sink};
 use std::env;
 use std::process;
-use tokio::time::Duration;
 
 // Up Next:
 
@@ -16,8 +11,6 @@ use tokio::time::Duration;
 // print(tm.title())
 // for s in tm.samples():
 //   print(s)
-
-use tokio::time::{self, sleep};
 
 #[tokio::main]
 async fn main() {

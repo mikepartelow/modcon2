@@ -1,12 +1,5 @@
-use crate::sound::RawPcmSource;
-use crate::track::{self};
-use core::num;
 use rodio::Source;
-use rodio::{source::SineWave, OutputStream, OutputStreamHandle, Sink};
-use std::process::Output;
-use std::str::FromStr;
-use std::thread;
-use tokio::time::{self, Duration};
+use rodio::{OutputStream, OutputStreamHandle, Sink};
 
 pub struct Device {
     num_channels: usize,
@@ -43,6 +36,12 @@ impl Device {
     pub fn stop(&mut self, channel_idx: usize) {
         // fixme: bounds check
         self.sinks[channel_idx].stop();
+    }
+
+    pub fn stop_all(&mut self) {
+        for sink in &self.sinks {
+            sink.stop()
+        }
     }
 
     pub fn wait(&mut self) {

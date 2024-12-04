@@ -12,12 +12,13 @@ use tokio::time::{self, sleep, Duration};
 pub async fn play_module(module: &mut track::Module) {
     let mut device = Device::new(module.num_channels);
 
-    let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
+    let mut interval = time::interval(Duration::from_millis(20)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
         if i == 73 {
             // FIXME!
             // println!("FIXME: pidx==0 is not the way");
+            device.stop_all();
             break; // FIXME: add a pattern table (aka order) iterator (or iterator generator) to module
         }
         // println!("!!!!!! i: {} pattern: {}", i, pidx);
