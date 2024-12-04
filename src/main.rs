@@ -4,6 +4,10 @@ use filer::track;
 use std::env;
 use std::process;
 
+extern crate pretty_env_logger;
+#[macro_use]
+extern crate log;
+
 // Up Next:
 
 // rename Module to TrackerModule
@@ -14,6 +18,8 @@ use std::process;
 
 #[tokio::main]
 async fn main() {
+    pretty_env_logger::init();
+
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 || args.len() > 3 {
         eprintln!("Usage: {} <filename> [command]", args[0]);

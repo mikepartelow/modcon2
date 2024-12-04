@@ -2,7 +2,8 @@ use crate::device::Device;
 
 use crate::sound::RawPcmSource;
 use crate::track::{self};
-
+use colored::Colorize;
+use log::*;
 use rodio::{OutputStream, Sink};
 use std::str::FromStr;
 use std::thread;
@@ -12,7 +13,7 @@ use tokio::time::{self, Duration};
 pub async fn play_module(module: &mut track::Module) {
     let mut device = Device::new(module.num_channels);
 
-    let mut interval = time::interval(Duration::from_millis(20)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
+    let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
         if i == 73 {
@@ -23,11 +24,12 @@ pub async fn play_module(module: &mut track::Module) {
         }
         // println!("!!!!!! i: {} pattern: {}", i, pidx);
         let print_prefix = format!(
-            "{:03}/{:03} P{:03} ",
+            "{:03}/{:03} P{:02}",
             i,
             module.pattern_table.len() - 1,
             pidx
-        ); // FIXME: rustier than this
+        )
+        .dimmed(); // FIXME: rustier than this
 
         let mut p_prevs = Vec::new();
         for _ in 0..4 {
@@ -42,12 +44,28 @@ pub async fn play_module(module: &mut track::Module) {
 
             for ch in &channels {
                 row_str += &format!(
-                    "|{} {:02x} {:04x} {:04x}",
-                    ch.note, ch.sample, ch.period, ch.effect
+                    "{}{} {} {} {}",
+                    "|".red(),
+                    ch.note.bright_yellow(),
+                    if ch.sample == 0 {
+                        "   ".cyan()
+                    } else {
+                        format!("{:02x}h", ch.sample).cyan()
+                    },
+                    if ch.period == 0 {
+                        "   ".dimmed()
+                    } else {
+                        format!("{:03}", ch.period).white()
+                    },
+                    if ch.effect == 0 {
+                        "     ".green()
+                    } else {
+                        format!("{:04x}h", ch.effect).green()
+                    },
                 );
             }
-            row_str += &"|";
-            println!("{} {}", print_prefix, row_str);
+
+            println!("{} {}{}", print_prefix, row_str.blue(), "|".red());
 
             for chan_idx in 0..4 {
                 let ch = &channels[chan_idx];
@@ -80,10 +98,7 @@ pub async fn play_module(module: &mut track::Module) {
                             samples.to_vec(), // FIXME: what??
                             rate,
                             module.samples[sample_idx].header.loop_offset != 1,
-                            module.samples[sample_idx]
-                                .header
-                                .loop_offset
-                                .into(),
+                            module.samples[sample_idx].header.loop_offset.into(),
                         )
                         .expect("FIXME");
                         // println!(
@@ -101,13 +116,13 @@ pub async fn play_module(module: &mut track::Module) {
             }
 
             interval.tick().await; // FIXME: would a sleep be simpler? is any delay even necessary? does playing N ticks of queued audio provide the necessary delay?
-                                   // println!("    tick");
+            trace!("tick");
         }
     }
-    println!("exit1");
+    debug!("exit1");
     device.wait();
     // FIXME: we never get to exit2
-    println!("exit2");
+    debug!("exit2");
 }
 
 pub fn play_samples(module: &mut track::Module, period: u8) {
