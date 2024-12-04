@@ -53,11 +53,11 @@ impl Iterator for Pattern {
             let (freq, note) = note::get_freq(period).expect("FIXME: use of expect is discouraged");
 
             items.push(Channel {
-                note: note,
-                freq: freq,
-                sample: sample,
-                period: period,
-                effect: effect,
+                note,
+                freq,
+                sample,
+                period,
+                effect,
             });
         }
         self.ptr += 4 * 4; // FIXME: replace magic numbers
@@ -113,10 +113,10 @@ pub fn read_module(filename: &str) -> io::Result<Module> {
 
     Ok(Module {
         num_channels: 4, // FIXME: magic number
-        title: title,
-        samples: samples,
-        pattern_table: pattern_table,
-        patterns: patterns,
+        title,
+        samples,
+        pattern_table,
+        patterns,
     })
 }
 
@@ -165,7 +165,7 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
             num_patterns = *pidx as usize;
         }
     }
-    num_patterns = num_patterns + 1;
+    num_patterns += 1;
     // end of "this works for"
 
     println!("num_patterns: {}", num_patterns);
@@ -178,7 +178,7 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
     if mk != "M.K." {
         return Err(io::Error::new(
             io::ErrorKind::Other,
-            format!("Error: missing expected magic marker M.K."),
+            "Error: missing expected magic marker M.K.".to_string(),
         ));
     }
 

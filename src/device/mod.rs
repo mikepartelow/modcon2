@@ -13,7 +13,7 @@ impl Device {
         let (stream, stream_handle) = OutputStream::try_default().unwrap();
 
         let mut d = Self {
-            num_channels: num_channels,
+            num_channels,
             output_stream: stream,
             output_handle: stream_handle,
             sinks: Vec::with_capacity(num_channels),

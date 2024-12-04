@@ -26,11 +26,11 @@ async fn main() {
     match track::read_module(filename) {
         // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
         Ok(mut module) => {
-            if command == "" {
+            if command.is_empty() {
                 player::play_module(&mut module).await;
             } else if command == "samples" || command == "ss" {
                 let period_c3 = 214;
-                let period_b3 = 113;
+                let _period_b3 = 113;
                 player::play_samples(&mut module, period_c3);
             }
         }

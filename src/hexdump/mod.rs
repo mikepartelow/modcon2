@@ -3,7 +3,7 @@ use std::{fs, io::Read};
 pub const LINELEN: usize = 16;
 
 fn is_printable_ascii(byte: u8) -> bool {
-    byte >= 32 && byte <= 126
+    (32..=126).contains(&byte)
 }
 
 pub fn hex_dump(filename: &str) {
@@ -61,6 +61,6 @@ fn print_text(text: &mut Vec<u8>, c: &mut usize) {
         }
     }
     *c = 0;
-    println!("");
+    println!();
     text.clear();
 }

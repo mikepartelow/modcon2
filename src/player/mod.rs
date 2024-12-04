@@ -2,11 +2,11 @@ use crate::device::Device;
 
 use crate::sound::RawPcmSource;
 use crate::track::{self};
-use rodio::Source;
-use rodio::{source::SineWave, OutputStream, Sink};
+
+use rodio::{OutputStream, Sink};
 use std::str::FromStr;
 use std::thread;
-use tokio::time::{self, sleep, Duration};
+use tokio::time::{self, Duration};
 
 // FIXME: this should take a sample factory, get rid of play_module_notes
 pub async fn play_module(module: &mut track::Module) {
@@ -35,7 +35,7 @@ pub async fn play_module(module: &mut track::Module) {
         }
 
         let p: &mut track::Pattern = &mut module.patterns[pidx as usize];
-        while let Some((row, channels)) = p.next() {
+        for (row, channels) in p.by_ref() {
             // FIXME: why not make this an iterator for consistency?
             let mut row_str =
                 String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
@@ -72,15 +72,15 @@ pub async fn play_module(module: &mut track::Module) {
                 } else if ch.period != 0 && ch.sample > 0 {
                     let period = if ch.period == 0 { p_prev } else { ch.period };
                     if ch.period != 0 {
-                        let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
+                        let rate = (7093789.2 / ((period * 2) as f32)) as u32;
                         let samples = &module.samples[sample_idx].data; // FIXME: what??
 
                         let new_source = RawPcmSource::new(
-                            module.samples[sample_idx as usize].header.name.to_string(),
+                            module.samples[sample_idx].header.name.to_string(),
                             samples.to_vec(), // FIXME: what??
                             rate,
-                            module.samples[sample_idx as usize].header.loop_offset != 1,
-                            module.samples[sample_idx as usize]
+                            module.samples[sample_idx].header.loop_offset != 1,
+                            module.samples[sample_idx]
                                 .header
                                 .loop_offset
                                 .into(),
@@ -113,7 +113,7 @@ pub async fn play_module(module: &mut track::Module) {
 pub fn play_samples(module: &mut track::Module, period: u8) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
-    let sink = Sink::try_new(&stream_handle).unwrap();
+    let _sink = Sink::try_new(&stream_handle).unwrap();
 
     for i in 0..module.samples.len() {
         let sample = &module.samples[i];

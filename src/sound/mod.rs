@@ -42,11 +42,11 @@ impl RawPcmSource {
             .collect();
 
         Ok(RawPcmSource {
-            loop_it: loop_it,
-            loop_offset: loop_offset,
-            name: name,
+            loop_it,
+            loop_offset,
+            name,
             ptr: 0,
-            rate: rate,
+            rate,
             samples: f32_samples,
         })
     }
@@ -56,7 +56,7 @@ impl Iterator for RawPcmSource {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.samples.len() == 0 {
+        if self.samples.is_empty() {
             return None;
         }
         if self.ptr >= self.samples.len() {

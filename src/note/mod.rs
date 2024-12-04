@@ -38,5 +38,5 @@ pub fn get_freq(period: u16) -> Result<(f32, String), String> {
         }
     }
 
-    return Err(format!("unknown period: {}", period));
+    Err(format!("unknown period: {}", period))
 }
