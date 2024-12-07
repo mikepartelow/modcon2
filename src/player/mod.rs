@@ -95,13 +95,22 @@ pub async fn play_module(module: &mut track::Module, cfg: Config) {
                     let period = if ch.period == 0 { p_prev } else { ch.period };
                     if ch.period != 0 {
                         let rate = (7159090.5 / (period as f32 * 2.0)) as u32;
-                        let samples = &module.samples[sample_idx].data; // FIXME: what??
+                        let scaling_factor = module.samples[sample_idx].header.volume as f32 / 64.0;
+
+                        // FIXME: do the scaling at sample load time, not here
+                        let samples: Vec<u8> = module.samples[sample_idx]
+                            .data
+                            .iter()
+                            .map(|b| (*b as f32 * scaling_factor) as u8)
+                            .collect();
+
+                        let loop_it = module.samples[sample_idx].header.loop_length != 1;
 
                         let new_source = RawPcmSource::new(
                             module.samples[sample_idx].header.name.to_string(),
-                            samples.to_vec(), // FIXME: what??
+                            samples,
                             rate,
-                            module.samples[sample_idx].header.loop_offset != 1,
+                            loop_it,
                             module.samples[sample_idx].header.loop_offset.into(),
                         )
                         .expect("FIXME");
@@ -112,13 +121,14 @@ pub async fn play_module(module: &mut track::Module, cfg: Config) {
 
                         if cfg.channels.contains(&chan_idx) {
                             info!(
-                                "latching: {:02x} [{}] v{} f{} ll{} lo{}",
+                                "latching: {:02x} [{}] v{} f{} ll{} lo{} li{}",
                                 sample_idx,
                                 module.samples[sample_idx].header.name,
                                 module.samples[sample_idx].header.volume,
                                 module.samples[sample_idx].header.finetune,
                                 module.samples[sample_idx].header.loop_length,
-                                module.samples[sample_idx].header.loop_offset
+                                module.samples[sample_idx].header.loop_offset,
+                                loop_it
                             );
                             device.latch(chan_idx, new_source);
                         }
