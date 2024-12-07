@@ -94,7 +94,7 @@ pub async fn play_module(module: &mut track::Module, cfg: Config) {
                 } else if ch.period != 0 && ch.sample > 0 {
                     let period = if ch.period == 0 { p_prev } else { ch.period };
                     if ch.period != 0 {
-                        let rate = (7159090.5 / ((period as f32 * 2.0) as f32)) as u32;
+                        let rate = (7159090.5 / (period as f32 * 2.0)) as u32;
                         let samples = &module.samples[sample_idx].data; // FIXME: what??
 
                         let new_source = RawPcmSource::new(

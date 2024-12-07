@@ -1,3 +1,0 @@
-#!/bin/bash
-
-PLAY_CHANS=3 RUST_LOG=info RUST_BACKTRACE=1 cargo run ../knulla-kuk.mod
