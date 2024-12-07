@@ -1,13 +1,11 @@
 use filer::player;
 
-use filer::player::Config;
 use filer::track;
 use std::env;
 use std::process;
 
-extern crate pretty_env_logger;
-#[macro_use]
 extern crate log;
+extern crate pretty_env_logger;
 
 // Up Next:
 
