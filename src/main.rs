@@ -38,6 +38,12 @@ async fn main() {
                 let period_c3 = 214;
                 let _period_b3 = 113;
                 player::play_samples(&mut module, period_c3);
+            } else if command == "info" || command == "ii" {
+                println!("title: [{}] ({})", module.title, module.title.len());
+                println!("---");
+                for (i, s) in module.samples.iter().enumerate() {
+                    println!("{:02x}: {}", i + 1, s.header);
+                }
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),

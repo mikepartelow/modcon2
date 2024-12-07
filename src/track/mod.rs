@@ -3,6 +3,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::{self, Read, Seek, SeekFrom};
 
+#[derive(Debug)]
 pub struct Module {
     pub num_channels: usize,
     pub title: String,
@@ -11,11 +12,13 @@ pub struct Module {
     pub samples: Vec<Sample>,
 }
 
+#[derive(Debug)]
 pub struct Pattern {
     pub data: [u8; 1024],
     ptr: usize,
 }
 
+#[derive(Debug)]
 pub struct Channel {
     pub note: String,
     pub freq: f32,
@@ -66,6 +69,7 @@ impl Iterator for Pattern {
     }
 }
 
+#[derive(Debug)]
 pub struct SampleHeader {
     pub name: String,
     pub length: u16,
@@ -75,6 +79,19 @@ pub struct SampleHeader {
     pub loop_length: u16,
 }
 
+impl fmt::Display for SampleHeader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "name: [{}] ({})", self.name, self.name.len())?;
+        writeln!(f, "  length:      [{}]", self.length)?;
+        writeln!(f, "  finetune:    [{}]", self.finetune)?;
+        writeln!(f, "  volume:      [{}]", self.volume)?;
+        writeln!(f, "  loop offset: [{}]", self.loop_offset)?;
+        writeln!(f, "  loop length: [{}]", self.loop_length)?;
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
 pub struct Sample {
     pub header: SampleHeader,
     pub data: Vec<u8>,
@@ -84,8 +101,14 @@ impl SampleHeader {
     pub const SIZE: usize = 22 + 2 + 1 + 1 + 2 + 2;
 
     fn from_bytes(bytes: &[u8]) -> Self {
+        let end = bytes
+            .iter()
+            .position(|&byte| byte == 0)
+            .unwrap_or(bytes.len());
+        let valid_utf8 = String::from_utf8_lossy(&bytes[0..end]).to_string();
+
         Self {
-            name: String::from_utf8_lossy(bytes[0..22].try_into().unwrap()).to_string(),
+            name: valid_utf8,
             // FIXME: why is this "2 *"" ?
             length: 2 * u16::from_be_bytes([bytes[22], bytes[23]]),
             finetune: bytes[24],
@@ -98,7 +121,7 @@ impl SampleHeader {
 
 impl fmt::Display for Module {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "title: [{}]", self.title)?;
+        write!(f, "title: [{}] ({})", self.title, self.title.len())?;
         for (i, s) in self.samples.iter().enumerate() {
             write!(f, "\n  sample {:02}: [{}]", i, s.header.name)?;
         }
@@ -121,9 +144,15 @@ pub fn read_module(filename: &str) -> io::Result<Module> {
 }
 
 fn read_title(file: &mut File) -> io::Result<String> {
-    let mut buffer = vec![0; 20];
-    file.read_exact(&mut buffer)?;
-    Ok(String::from_utf8_lossy(&buffer).to_string())
+    let mut bytes = vec![0; 20];
+    file.read_exact(&mut bytes)?;
+    let end = bytes
+        .iter()
+        .position(|&byte| byte == 0)
+        .unwrap_or(bytes.len());
+    let valid_utf8 = String::from_utf8_lossy(&bytes[0..end]).to_string();
+
+    Ok(valid_utf8)
 }
 
 // FIXME: there could be 15 in some versions, have to check for M.K. marker
