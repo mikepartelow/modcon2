@@ -1,6 +1,6 @@
-use filer::player;
+use modcon2::player;
 
-use filer::track;
+use modcon2::module;
 use std::env;
 use std::process;
 
@@ -28,7 +28,7 @@ async fn main() {
     let filename = &args[1];
     let command = if args.len() == 3 { &args[2] } else { "" };
 
-    match track::read_module(filename) {
+    match module::read_module(filename) {
         // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
         Ok(mut module) => {
             if command.is_empty() {

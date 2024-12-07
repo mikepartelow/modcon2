@@ -1,7 +1,6 @@
 use crate::device::Device;
-
+use crate::module;
 use crate::sound::RawPcmSource;
-use crate::track::{self};
 use colored::Colorize;
 use log::*;
 use rodio::{OutputStream, Sink};
@@ -14,7 +13,7 @@ pub struct Config {
 }
 
 // FIXME: this should take a sample factory, get rid of play_module_notes
-pub async fn play_module(module: &mut track::Module, cfg: Config) {
+pub async fn play_module(module: &mut module::Module, cfg: Config) {
     let mut device = Device::new(module.num_channels);
 
     // FIXME: this (tempo) is set by the very first effect in the mod, and differs between thraddash.mod and knullakuk.mod
@@ -41,7 +40,7 @@ pub async fn play_module(module: &mut track::Module, cfg: Config) {
             p_prevs.push(0);
         }
 
-        let p: &mut track::Pattern = &mut module.patterns[pidx as usize];
+        let p: &mut module::Pattern = &mut module.patterns[pidx as usize];
         for (row, channels) in p.by_ref() {
             // FIXME: why not make this an iterator for consistency?
             let mut row_str =
@@ -153,7 +152,7 @@ pub async fn play_module(module: &mut track::Module, cfg: Config) {
     debug!("exit2");
 }
 
-pub fn play_samples(module: &mut track::Module, period: u8) {
+pub fn play_samples(module: &mut module::Module, period: u8) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
     let _sink = Sink::try_new(&stream_handle).unwrap();
