@@ -1,5 +1,6 @@
 use filer::player;
 
+use filer::player::Config;
 use filer::track;
 use std::env;
 use std::process;
@@ -33,7 +34,8 @@ async fn main() {
         // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
         Ok(mut module) => {
             if command.is_empty() {
-                player::play_module(&mut module).await;
+                let cfg = make_player_config();
+                player::play_module(&mut module, cfg).await;
             } else if command == "samples" || command == "ss" {
                 let period_c3 = 214;
                 let _period_b3 = 113;
@@ -48,4 +50,21 @@ async fn main() {
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
     }
+}
+
+fn make_player_config() -> player::Config {
+    let key = "PLAY_CHANS";
+    let chan_vec = match env::var(key) {
+        Ok(val) => {
+            let int_vec: Vec<usize> = val
+                .split(',')
+                .filter_map(|s| s.parse::<usize>().ok())
+                .collect();
+
+            int_vec
+        }
+        Err(_) => vec![0, 1, 2, 3],
+    };
+
+    player::Config { channels: chan_vec }
 }

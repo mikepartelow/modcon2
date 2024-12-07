@@ -9,8 +9,12 @@ use std::str::FromStr;
 use std::thread;
 use tokio::time::{self, Duration};
 
+pub struct Config {
+    pub channels: Vec<usize>,
+}
+
 // FIXME: this should take a sample factory, get rid of play_module_notes
-pub async fn play_module(module: &mut track::Module) {
+pub async fn play_module(module: &mut track::Module, cfg: Config) {
     let mut device = Device::new(module.num_channels);
 
     let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
@@ -105,7 +109,19 @@ pub async fn play_module(module: &mut track::Module) {
                         //     "this guy: {}",
                         //     module.samples[sample_idx as usize].header.loop_offset != 1
                         // );
-                        device.latch(chan_idx, new_source);
+
+                        if cfg.channels.contains(&chan_idx) {
+                            info!(
+                                "latching: {:02x} [{}] v{} f{} ll{} lo{}",
+                                sample_idx,
+                                module.samples[sample_idx].header.name,
+                                module.samples[sample_idx].header.volume,
+                                module.samples[sample_idx].header.finetune,
+                                module.samples[sample_idx].header.loop_length,
+                                module.samples[sample_idx].header.loop_offset
+                            );
+                            device.latch(chan_idx, new_source);
+                        }
                     } else if ch.sample == 0 {
                         println!("STOP!!");
                         device.stop(chan_idx);
