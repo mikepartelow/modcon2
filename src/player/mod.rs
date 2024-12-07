@@ -17,6 +17,7 @@ pub struct Config {
 pub async fn play_module(module: &mut track::Module, cfg: Config) {
     let mut device = Device::new(module.num_channels);
 
+    // FIXME: this (tempo) is set by the very first effect in the mod, and differs between thraddash.mod and knullakuk.mod
     let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
@@ -104,7 +105,8 @@ pub async fn play_module(module: &mut track::Module, cfg: Config) {
                             .map(|b| (*b as f32 * scaling_factor) as u8)
                             .collect();
 
-                        let loop_it = module.samples[sample_idx].header.loop_length != 1;
+                        let ll = module.samples[sample_idx].header.loop_length;
+                        let loop_it = ll > 1;
 
                         let new_source = RawPcmSource::new(
                             module.samples[sample_idx].header.name.to_string(),

@@ -44,6 +44,9 @@ async fn main() {
                 for (i, s) in module.samples.iter().enumerate() {
                     println!("{:02x}: {}", i + 1, s.header);
                 }
+                println!("---");
+                println!("Effects used in this module: "); // FIXME!!!
+                println!("FIXME FIXME FIXME!!!");
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),

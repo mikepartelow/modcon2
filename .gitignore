@@ -1,2 +1,3 @@
 /target
 *.mod
+.envrc
