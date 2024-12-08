@@ -21,7 +21,6 @@ pub struct Pattern {
 #[derive(Debug)]
 pub struct Channel {
     pub note: String,
-    pub freq: f32,
     pub sample: u8,
     pub period: u16,
     pub effect: u16,
@@ -53,11 +52,10 @@ impl Iterator for Pattern {
             //  // Combine the third and fourth byte to get the effect (zzzzzzzzzzzz)
             let effect = ((channel[2] & 0x0F) as u16) << 8 | (channel[3] as u16);
 
-            let (freq, note) = note::get_freq(period).expect("FIXME: use of expect is discouraged");
+            let note = note::from_period(period).expect("FIXME: use of expect is discouraged");
 
             items.push(Channel {
                 note,
-                freq,
                 sample,
                 period,
                 effect,
@@ -174,18 +172,9 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
 
     let mut buffer = vec![0, 2];
     let _ = file.read_exact(&mut buffer);
-    // println!("buffie");
-    // let mut c = 0;
-    // let mut text = Vec::with_capacity(LINELEN);
-    // hex_dump_buffer(&buffer, &mut text, &mut c);
 
     let mut pattern_table = vec![0; 128];
     file.read_exact(&mut pattern_table)?;
-
-    // let mut c = 0;
-    // let mut text = Vec::with_capacity(LINELEN);
-    // hex_dump_buffer(&pattern_table, &mut text, &mut c);
-    // println!("");
 
     // this works for shofixti and knulla but not supox
     let mut num_patterns: usize = 0;
@@ -196,8 +185,6 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
     }
     num_patterns += 1;
     // end of "this works for"
-
-    println!("num_patterns: {}", num_patterns);
 
     let mut buffer: Vec<u8> = vec![0; 4];
     file.read_exact(&mut buffer)?;

@@ -1,5 +1,4 @@
 pub mod device;
-pub mod hexdump;
 pub mod module;
 pub mod note;
 pub mod player;

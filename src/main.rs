@@ -7,14 +7,6 @@ use std::process;
 extern crate log;
 extern crate pretty_env_logger;
 
-// Up Next:
-
-// rename Module to TrackerModule
-// tm = TrackerModule(filename)
-// print(tm.title())
-// for s in tm.samples():
-//   print(s)
-
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
@@ -29,14 +21,12 @@ async fn main() {
     let command = if args.len() == 3 { &args[2] } else { "" };
 
     match module::read_module(filename) {
-        // Ok(module) => player::play_pattern(&module.pattern_table[0]).unwrap(),
         Ok(mut module) => {
             if command.is_empty() {
                 let cfg = make_player_config();
                 player::play_module(&mut module, cfg).await;
             } else if command == "samples" || command == "ss" {
                 let period_c3 = 214;
-                let _period_b3 = 113;
                 player::play_samples(&mut module, period_c3);
             } else if command == "info" || command == "ii" {
                 println!("title: [{}] ({})", module.title, module.title.len());
@@ -44,9 +34,13 @@ async fn main() {
                 for (i, s) in module.samples.iter().enumerate() {
                     println!("{:02x}: {}", i + 1, s.header);
                 }
-                println!("---");
-                println!("Effects used in this module: "); // FIXME!!!
-                println!("FIXME FIXME FIXME!!!");
+            } else if command == "todo" {
+                // FIXME
+                println!("Unit tests");
+                println!("Integration tests");
+                println!("FIXMEs");
+                println!("sample volumes");
+                println!("Effects used in this module but not yet implemented in modcon2: ");
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),

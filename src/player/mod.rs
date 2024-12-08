@@ -21,12 +21,11 @@ pub async fn play_module(module: &mut module::Module, cfg: Config) {
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
         if i == 73 {
-            // FIXME!
+            // FIXME: hard-coded for knullakuk.mod
             // println!("FIXME: pidx==0 is not the way");
             device.stop_all();
             break; // FIXME: add a pattern table (aka order) iterator (or iterator generator) to module
         }
-        // println!("!!!!!! i: {} pattern: {}", i, pidx);
         let print_prefix = format!(
             "{:03}/{:03} P{:02}",
             i,
@@ -42,11 +41,11 @@ pub async fn play_module(module: &mut module::Module, cfg: Config) {
 
         let p: &mut module::Pattern = &mut module.patterns[pidx as usize];
         for (row, channels) in p.by_ref() {
-            // FIXME: why not make this an iterator for consistency?
             let mut row_str =
                 String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
 
             for ch in &channels {
+                // FIXME: refactor, unit test
                 row_str += &format!(
                     "{}{} {} {} {}",
                     "|".red(),
@@ -82,18 +81,13 @@ pub async fn play_module(module: &mut module::Module, cfg: Config) {
                     (ch.sample - 1) as usize
                 };
 
-                // println!(
-                //     "  chan_idx: {} ch.period: {} p_prev: {} ch.sample: {}",
-                //     chan_idx, ch.period, p_prev, ch.sample
-                // );
-
                 if ch.period == 0 && p_prev == 0 {
                     // no change from "not playing yet"
-                    // NOOP
-                    // println!("NOOP");
                 } else if ch.period != 0 && ch.sample > 0 {
                     let period = if ch.period == 0 { p_prev } else { ch.period };
                     if ch.period != 0 {
+                        // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
+                        // FIXME: note 123456
                         let rate = (7159090.5 / (period as f32 * 2.0)) as u32;
                         let scaling_factor = module.samples[sample_idx].header.volume as f32 / 64.0;
 
@@ -115,11 +109,8 @@ pub async fn play_module(module: &mut module::Module, cfg: Config) {
                             module.samples[sample_idx].header.loop_offset.into(),
                         )
                         .expect("FIXME");
-                        // println!(
-                        //     "this guy: {}",
-                        //     module.samples[sample_idx as usize].header.loop_offset != 1
-                        // );
 
+                        // FIXME: make this more readable, like info!(module.samples[sample_idx]) calls some Sample method
                         if cfg.channels.contains(&chan_idx) {
                             info!(
                                 "latching: {:02x} [{}] v{} f{} ll{} lo{} li{}",
@@ -148,7 +139,6 @@ pub async fn play_module(module: &mut module::Module, cfg: Config) {
     }
     debug!("exit1");
     device.wait();
-    // FIXME: we never get to exit2
     debug!("exit2");
 }
 
@@ -174,6 +164,7 @@ pub fn play_samples(module: &mut module::Module, period: u8) {
         //   data to the channel, eg. for a PAL machine sending a note at
         //   C2 (period 428), the rate is 7093789.2/856 ~= 8287.1369
 
+        // FIXME: unify with note 123456
         let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
 
         let source = RawPcmSource::new(
