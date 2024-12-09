@@ -32,15 +32,15 @@ async fn main() {
                 println!("title: [{}] ({})", module.title, module.title.len());
                 println!("---");
                 for (i, s) in module.samples.iter().enumerate() {
-                    println!("{:02x}: {}", i + 1, s.header);
+                    println!("{:02x}: {}", i + 1, s);
                 }
             } else if command == "todo" {
-                // FIXME
                 println!("Unit tests");
                 println!("Integration tests");
                 println!("FIXMEs");
                 println!("sample volumes");
                 println!("Effects used in this module but not yet implemented in modcon2: ");
+                // FIXME ^^^^^^
             }
         }
         Err(e) => eprintln!("Error reading {}: {}", filename, e),
