@@ -1,4 +1,4 @@
-pub fn from_period(period: u16) -> Result<(String), String> {
+pub fn from_period(period: u16) -> Result<String, String> {
     if period == 0 {
         return Ok(String::from("   "));
     }

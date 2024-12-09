@@ -1,4 +1,4 @@
-use crate::pattern::{self, Pattern};
+use crate::pattern::{Pattern};
 use crate::sample::Sample;
 use std::fmt;
 use std::fs::File;

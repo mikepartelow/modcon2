@@ -21,7 +21,7 @@ async fn main() {
     let filename = &args[1];
     let command = if args.len() == 3 { &args[2] } else { "" };
 
-    let mut file = File::open(filename).unwrap();
+    let file = File::open(filename).unwrap();
 
     match module::read(file) {
         Ok(mut module) => {
