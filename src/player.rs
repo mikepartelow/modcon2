@@ -21,7 +21,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
     let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
-        if i == 73 {
+        if i == module.num_positions {
             // FIXME: hard-coded for knullakuk.mod
             // println!("FIXME: pidx==0 is not the way");
             device.stop_all();

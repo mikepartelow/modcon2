@@ -1,13 +1,15 @@
-use crate::pattern::{Pattern};
+use crate::pattern::{self, Pattern};
 use crate::sample::Sample;
+use log::*;
 use std::fmt;
-use std::fs::File;
-use std::io::{self, Read, Seek, SeekFrom};
+use std::io::Read;
+use std::io::{self, Seek, SeekFrom};
 
 #[derive(Debug)]
 pub struct Module {
     pub num_channels: usize,
     pub title: String,
+    pub num_positions: usize,
     pub pattern_table: Vec<u8>,
     pub patterns: Vec<Pattern>,
     pub samples: Vec<Sample>,
@@ -17,12 +19,14 @@ impl Module {
     pub fn new(
         title: String,
         samples: Vec<Sample>,
+        num_positions: usize,
         pattern_table: Vec<u8>,
         patterns: Vec<Pattern>,
     ) -> Self {
         Module {
             num_channels: 4,
             title,
+            num_positions,
             samples,
             pattern_table,
             patterns,
@@ -40,14 +44,40 @@ impl fmt::Display for Module {
     }
 }
 
-pub fn read(mut file: File) -> io::Result<Module> {
+pub fn read<R: Read + Seek>(mut file: R) -> io::Result<Module> {
     let title = read_title(&mut file)?;
-    let (pattern_table, patterns, samples) = read_samples(&mut file)?;
+    let samples: read_sample_headers(&mut file)?;
 
-    Ok(Module::new(title, samples, pattern_table, patterns))
+    let mut bytes = vec![0; 1];
+    file.read_exact(&mut bytes)?;
+
+    let num_positions = bytes[0] as usize;
+
+    // "Historically set to 127, but can be safely ignored." : https://www.aes.id.au/modformat.html
+    let mut bytes = vec![0; 1];
+    file.read_exact(&mut bytes)?;
+
+    let pattern_table = read_pattern_table(&mut file)?;
+
+    // FIXME: determine expected size, then compare with expected
+
+    let magic_four = read_magic_four(&mut file)?;
+
+    let samples = read_sample_data(&mut file, &samples)?;
+
+    let pos = file.stream_position()?;
+    file.seek(SeekFrom::End(0))?;
+
+    let filelen = file.stream_position()?;
+    if pos != filelen {
+        error!("Expected file length {} but got {}.", filelen, pos);
+    }
+    assert!(pos == filelen);
+
+    Ok(Module::new(title, samples, num_positions, pattern_table, patterns))
 }
 
-fn read_title(file: &mut File) -> io::Result<String> {
+fn read_title<R: Read>(file: &mut R) -> io::Result<String> {
     let mut bytes = vec![0; 20];
     file.read_exact(&mut bytes)?;
     let end = bytes
@@ -63,7 +93,7 @@ fn read_title(file: &mut File) -> io::Result<String> {
 const NUM_SAMPLES: usize = 31;
 const SAMPLE_HEADER_SIZE: usize = 22 + 2 + 1 + 1 + 2 + 2;
 
-fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sample>)> {
+fn read_samples<R: Read>(file: &mut R) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sample>)> {
     let mut patterns: Vec<Pattern> = Vec::new();
     let mut samples: Vec<Sample> = Vec::new();
 
@@ -122,15 +152,6 @@ fn read_samples(file: &mut File) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sampl
             .iter()
             .map(|&b| ((b as u16 + 128) & 255) as u8)
             .collect();
-    }
-
-    // FIXME: determine expected size, then compare with expected
-    let pos = file.stream_position().unwrap();
-    file.seek(SeekFrom::End(0))?;
-    let filelen = file.stream_position().unwrap();
-    // assert!(pos == filelen);
-    if pos != filelen {
-        println!("WARNING!!!!!11")
     }
 
     Ok((pattern_table, patterns, samples))
