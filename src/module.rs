@@ -5,7 +5,6 @@ use std::fmt::{self};
 use std::io::Read;
 use std::io::{self, Seek, SeekFrom};
 
-#[derive(Debug)]
 pub struct Module {
     pub num_channels: usize,
     pub title: String,
@@ -48,14 +47,12 @@ pub fn read<R: Read + Seek>(mut file: R) -> io::Result<Module> {
     let title = read_title(&mut file)?;
     let mut samples = read_sample_headers(&mut file)?;
 
-    let mut bytes = vec![0; 1];
+    let mut bytes = vec![0; 2];
     file.read_exact(&mut bytes)?;
 
     let num_positions = bytes[0] as usize;
     info!("num positions: {}", num_positions);
-
-    // "Historically set to 127, but can be safely ignored." : https://www.aes.id.au/modformat.html
-    file.read_exact(&mut bytes)?;
+    // second byte is "Historically set to 127, but can be safely ignored." : https://www.aes.id.au/modformat.html
 
     let (pattern_table, num_patterns) = read_pattern_table(&mut file)?;
 
@@ -163,7 +160,7 @@ fn check_magic_four<R: Read>(file: &mut R) -> io::Result<()> {
 fn read_sample_data<R: Read>(file: &mut R, samples: &mut Vec<Sample>) -> io::Result<()> {
     for s in samples.iter_mut() {
         let mut data = vec![0; s.length as usize];
-        info!("reading {} bytes of sample data", s.length);
+        debug!("reading {} bytes of sample data", s.length);
 
         file.read_exact(&mut data)?;
 
