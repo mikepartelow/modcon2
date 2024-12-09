@@ -1,7 +1,7 @@
-use crate::pattern::{self, Pattern};
+use crate::pattern::Pattern;
 use crate::sample::Sample;
 use log::*;
-use std::fmt;
+use std::fmt::{self};
 use std::io::Read;
 use std::io::{self, Seek, SeekFrom};
 
@@ -46,35 +46,34 @@ impl fmt::Display for Module {
 
 pub fn read<R: Read + Seek>(mut file: R) -> io::Result<Module> {
     let title = read_title(&mut file)?;
-    let samples: read_sample_headers(&mut file)?;
+    let mut samples = read_sample_headers(&mut file)?;
 
     let mut bytes = vec![0; 1];
     file.read_exact(&mut bytes)?;
 
     let num_positions = bytes[0] as usize;
+    info!("num positions: {}", num_positions);
 
     // "Historically set to 127, but can be safely ignored." : https://www.aes.id.au/modformat.html
-    let mut bytes = vec![0; 1];
     file.read_exact(&mut bytes)?;
 
-    let pattern_table = read_pattern_table(&mut file)?;
+    let (pattern_table, num_patterns) = read_pattern_table(&mut file)?;
 
-    // FIXME: determine expected size, then compare with expected
+    check_magic_four(&mut file)?;
 
-    let magic_four = read_magic_four(&mut file)?;
+    let patterns = read_patterns(&mut file, num_patterns)?;
 
-    let samples = read_sample_data(&mut file, &samples)?;
+    read_sample_data(&mut file, &mut samples)?;
 
-    let pos = file.stream_position()?;
-    file.seek(SeekFrom::End(0))?;
+    check_length(&mut file)?;
 
-    let filelen = file.stream_position()?;
-    if pos != filelen {
-        error!("Expected file length {} but got {}.", filelen, pos);
-    }
-    assert!(pos == filelen);
-
-    Ok(Module::new(title, samples, num_positions, pattern_table, patterns))
+    Ok(Module::new(
+        title,
+        samples,
+        num_positions,
+        pattern_table,
+        patterns,
+    ))
 }
 
 fn read_title<R: Read>(file: &mut R) -> io::Result<String> {
@@ -89,12 +88,10 @@ fn read_title<R: Read>(file: &mut R) -> io::Result<String> {
     Ok(valid_utf8)
 }
 
-// FIXME: there could be 15 in some versions, have to check for M.K. marker
-const NUM_SAMPLES: usize = 31;
-const SAMPLE_HEADER_SIZE: usize = 22 + 2 + 1 + 1 + 2 + 2;
+fn read_sample_headers<R: Read>(file: &mut R) -> io::Result<Vec<Sample>> {
+    const NUM_SAMPLES: usize = 31;
+    const SAMPLE_HEADER_SIZE: usize = 22 + 2 + 1 + 1 + 2 + 2;
 
-fn read_samples<R: Read>(file: &mut R) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec<Sample>)> {
-    let mut patterns: Vec<Pattern> = Vec::new();
     let mut samples: Vec<Sample> = Vec::new();
 
     for _ in 1..=NUM_SAMPLES {
@@ -104,33 +101,31 @@ fn read_samples<R: Read>(file: &mut R) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec
         samples.push(Sample::from_bytes(&buffer));
     }
 
-    let mut buffer = vec![0, 2];
-    let _ = file.read_exact(&mut buffer);
+    Ok(samples)
+}
 
+fn read_pattern_table<R: Read>(file: &mut R) -> io::Result<(Vec<u8>, usize)> {
     let mut pattern_table = vec![0; 128];
     file.read_exact(&mut pattern_table)?;
 
-    // this works for shofixti and knulla but not supox
-    let mut num_patterns: usize = 0;
+    // FIXME: this works for shofixti and knulla but not supox
+    //        could the problem be solved by looping only until module::num_positions?
+    let mut num_patterns_used: usize = 0;
     for pidx in &pattern_table {
-        if *pidx as usize > num_patterns {
-            num_patterns = *pidx as usize;
+        if *pidx as usize > num_patterns_used {
+            num_patterns_used = *pidx as usize;
         }
     }
-    num_patterns += 1;
+    num_patterns_used += 1;
     // end of "this works for"
 
-    let mut buffer: Vec<u8> = vec![0; 4];
-    file.read_exact(&mut buffer)?;
-    let mk = String::from_utf8_lossy(&buffer).to_string();
+    Ok((pattern_table, num_patterns_used))
+}
 
-    // FIXME: actually, first read 15 samples, check for this stuff, then backtrack if we don't find it.
-    if mk != "M.K." {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            "Error: missing expected magic marker M.K.".to_string(),
-        ));
-    }
+fn read_patterns<R: Read>(file: &mut R, num_patterns: usize) -> io::Result<Vec<Pattern>> {
+    let mut patterns = Vec::new();
+
+    info!("reading {} patterns", num_patterns);
 
     for _ in 0..num_patterns {
         let mut buffer: Vec<u8> = vec![0; 1024];
@@ -142,8 +137,33 @@ fn read_samples<R: Read>(file: &mut R) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec
         })
     }
 
+    Ok(patterns)
+}
+
+fn check_magic_four<R: Read>(file: &mut R) -> io::Result<()> {
+    let mut buffer: Vec<u8> = vec![0; 4];
+    file.read_exact(&mut buffer)?;
+
+    let mk = String::from_utf8_lossy(&buffer).to_string();
+
+    // FIXME: actually, first read 15 samples, check for this stuff, then backtrack if we don't find it.
+    if mk != "M.K." {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            format!(
+                "Error: missing expected magic marker 'M.K.', got '{}' instead.",
+                mk
+            ),
+        ));
+    }
+
+    Ok(())
+}
+
+fn read_sample_data<R: Read>(file: &mut R, samples: &mut Vec<Sample>) -> io::Result<()> {
     for s in samples.iter_mut() {
         let mut data = vec![0; s.length as usize];
+        info!("reading {} bytes of sample data", s.length);
 
         file.read_exact(&mut data)?;
 
@@ -154,5 +174,20 @@ fn read_samples<R: Read>(file: &mut R) -> io::Result<(Vec<u8>, Vec<Pattern>, Vec
             .collect();
     }
 
-    Ok((pattern_table, patterns, samples))
+    Ok(())
+}
+
+fn check_length<R: Read + Seek>(mut file: R) -> io::Result<()> {
+    // FIXME: determine expected size, then compare with expected - don't just check that we are at EOF
+    let pos = file.stream_position()?;
+    file.seek(SeekFrom::End(0))?;
+
+    let filelen = file.stream_position()?;
+    if pos != filelen {
+        return Err(io::Error::new(
+            io::ErrorKind::UnexpectedEof,
+            format!("Expected file length {} but got {}.", filelen, pos),
+        ));
+    }
+    Ok(())
 }
