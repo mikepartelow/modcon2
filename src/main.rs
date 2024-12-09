@@ -2,6 +2,7 @@ use modcon2::player;
 
 use modcon2::module;
 use std::env;
+use std::fs::File;
 use std::process;
 
 extern crate log;
@@ -20,7 +21,9 @@ async fn main() {
     let filename = &args[1];
     let command = if args.len() == 3 { &args[2] } else { "" };
 
-    match module::read_module(filename) {
+    let mut file = File::open(filename).unwrap();
+
+    match module::read(file) {
         Ok(mut module) => {
             if command.is_empty() {
                 let cfg = make_player_config();
@@ -39,6 +42,7 @@ async fn main() {
                 println!("Integration tests");
                 println!("FIXMEs");
                 println!("sample volumes");
+                println!("remove all unwraps() and other things that panic");
                 println!("Effects used in this module but not yet implemented in modcon2: ");
                 // FIXME ^^^^^^
             }
