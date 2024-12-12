@@ -1,4 +1,5 @@
 fmt:
+	cargo fmt
 	cargo clippy --fix
 
 hyperspace:

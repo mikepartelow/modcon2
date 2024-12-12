@@ -2,35 +2,24 @@
 
 An Amiga module player in Rust.
 
-## reference
+FIXME: link to blog post
 
-https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L204
-https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L828
-https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L909
+## License
 
-https://www.aes.id.au/modformat.html
-https://github.com/8bitbubsy/pt2-clone/?tab=readme-ov-file
-https://wiki.multimedia.cx/index.php/Protracker_Module
+Copyright (c) 2024 Mike Partelow
 
-https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L204
-https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L828
-https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py#L909
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-https://github.com/Prezzodaman/pymod/blob/main/pymod/pymod.py
-https://www.ocf.berkeley.edu/~eek/index.html/tiny_examples/ptmod/
-https://github.com/cmatsuoka/tracker-history
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-https://modarchive.org/forums/index.php?topic=2709.0
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-https://github.com/xor2003/wicked-player
-https://github.com/gotracker/playback
 
-https://github.com/gotracker/playback/blob/main/filter/amigafilter.go#L41
+## Reference
 
-https://www.aes.id.au/modformat.html
-https://modarchive.org/index.php?request=view_by_moduleid&query=48107
-https://web.archive.org/web/20100921225940/http://io.debian.net/~tar/debian/xmp/xmp-2.7.1/docs/formats/Ultimate_Soundtracker-format.txt
-https://github.com/mikepartelow/rust-chess/tree/main/app/src
-
-https://github.com/cmatsuoka/oxdz
-https://github.com/libxmp/libxmp
+- https://www.aes.id.au/modformat.html
+- https://wiki.multimedia.cx/index.php/Protracker_Module
+- https://web.archive.org/web/20100921225940/http://io.debian.net/~tar/debian/xmp/xmp-2.7.1/docs/formats/Ultimate_Soundtracker-format.txt
+- https://github.com/cmatsuoka/tracker-history
+- https://github.com/Prezzodaman/pymod/blob/main/pymod/pymod.py
+- https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py
