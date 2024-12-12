@@ -1,4 +1,5 @@
 fmt:
+	cargo check
 	cargo fmt
 	cargo clippy --fix
 
