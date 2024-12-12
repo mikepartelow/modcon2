@@ -1,6 +1,6 @@
 on: [push]
 
-name: build
+name: build and lint
 
 jobs:
   check:
@@ -11,7 +11,7 @@ jobs:
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: nightly
+            toolchain: 1.77.1
             override: true
             components: rustfmt, clippy
 
