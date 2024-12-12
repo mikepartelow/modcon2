@@ -16,4 +16,4 @@ jobs:
             components: rustfmt, clippy
 
       - name: lint
-          run: make lint
+        run: make lint
