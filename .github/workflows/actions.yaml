@@ -15,6 +15,6 @@ jobs:
             override: true
             components: rustfmt, clippy
       - name: deps
-        run: sudo apt-get install -yqq libasound2
+        run: sudo apt-get install -yqq libasound2-dev
       - name: lint
         run: make lint
