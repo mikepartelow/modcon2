@@ -1,5 +1,8 @@
-fmt:
-	cargo check
+lint:
+	RUSTFLAGS="-D warnings" cargo check
+	RUSTFLAGS="-D warnings" cargo clippy
+
+fmt::
 	cargo fmt
 	cargo clippy --fix
 

@@ -16,6 +16,4 @@ jobs:
             components: rustfmt, clippy
 
       - name: lint
-        uses: actions-rs/cargo@v1
-        with:
-          command: make fmt
+          run: make lint
