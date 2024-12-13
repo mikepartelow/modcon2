@@ -17,7 +17,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
     // FIXME: this (tempo) is set by the very first effect in the mod, and differs between thraddash.mod and knullakuk.mod
     let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
-    let mut rowfmt = RowFormatter::new(&module);
+    let mut rowfmt = RowFormatter::new(module);
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
         rowfmt.set_prefix(i, pidx);
@@ -32,12 +32,9 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
             for chan_idx in 0..module.num_channels {
                 let ch = &channels[chan_idx];
                 let p_prev = p_prevs[chan_idx];
-                let sample_idx: usize = if ch.sample == 0 {
-                    0
-                } else {
-                    // FIXME: so ugly! the mod file has ch.sample=0 meaning "continue playing", and ch.sample=1 means module.samples[0]
-                    // we could 1-index the samples array!
-                    (ch.sample - 1) as usize
+                let sample_idx: usize = match ch.sample {
+                    0 => 0,                        // ch.sample == 0 means "continue playing"
+                    _ => (ch.sample - 1) as usize, // ch.sample > 0 refers to our 0-indexed Vec<Sample>
                 };
 
                 if ch.period == 0 && p_prev == 0 {

@@ -1,13 +1,13 @@
 use crate::module::Module;
-use crate::pattern::Pattern;
-use crate::pcm;
-use crate::{channel::Channel, device::Device};
-use colored::{ColoredString, Colorize};
-use log::*;
-use rodio::{OutputStream, Sink};
+
+
+use crate::{channel::Channel};
+use colored::{Colorize};
+
+
 use std::str::FromStr;
-use std::thread;
-use tokio::time::{self, Duration};
+
+
 
 pub struct RowFormatter {
     pattern_table_len: usize,
