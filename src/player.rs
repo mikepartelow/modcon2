@@ -31,7 +31,10 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                     _ => (ch.sample - 1) as usize, // ch.sample > 0 refers to our 0-indexed Vec<Sample>
                 };
 
-                // FIXME: there is probably some signal to "stop playing sample"
+                if ch.period == 0 {
+                    device.stop(chan_idx); // FIXME: is this necessary and semantically correct?
+                    continue; // this is necessary to avoid divide by zero when computing `rate`
+                }
 
                 if ch.sample > 0 {
                     // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
