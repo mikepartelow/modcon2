@@ -32,40 +32,42 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                 };
 
                 if ch.period == 0 {
-                    device.stop(chan_idx); // FIXME: is this necessary and semantically correct?
+                    // device.stop(chan_idx); // FIXME: is this necessary and semantically correct?
                     continue; // this is necessary to avoid divide by zero when computing `rate`
                 }
 
-                if ch.sample > 0 {
-                    // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
-                    // FIXME: note 123456
-                    let rate: u32 = (7159090.5 / (ch.period as f32 * 2.0)) as u32;
+                let sample = match ch.sample {
+                    0 => &module.samples[device.source_id(chan_idx)],
+                    _ => &module.samples[sample_idx],
+                };
 
-                    let sample = &module.samples[sample_idx];
+                // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
+                // FIXME: note 123456
+                let rate: u32 = (7159090.5 / (ch.period as f32 * 2.0)) as u32;
 
-                    let new_source = pcm::Source::new(
-                        module.samples[sample_idx].name.to_string(),
-                        &sample.data,
-                        rate,
+                let new_source = pcm::Source::new(
+                    module.samples[sample_idx].name.to_string(),
+                    &sample.data,
+                    rate,
+                    sample.is_looped(),
+                    sample.loop_offset.into(),
+                )
+                .expect("FIXME");
+
+                // FIXME: make this more readable, like info!(sample) calls some Sample method
+                if cfg.channels.contains(&chan_idx) {
+                    info!(
+                        "latching: {:02x} [{}] v{} f{} ll{} lo{} li{}",
+                        sample_idx,
+                        sample.name,
+                        sample.volume,
+                        sample.finetune,
+                        sample.loop_length,
+                        sample.loop_offset,
                         sample.is_looped(),
-                        sample.loop_offset.into(),
-                    )
-                    .expect("FIXME");
-
-                    // FIXME: make this more readable, like info!(sample) calls some Sample method
-                    if cfg.channels.contains(&chan_idx) {
-                        info!(
-                            "latching: {:02x} [{}] v{} f{} ll{} lo{} li{}",
-                            sample_idx,
-                            sample.name,
-                            sample.volume,
-                            sample.finetune,
-                            sample.loop_length,
-                            sample.loop_offset,
-                            sample.is_looped(),
-                        );
-                        device.latch(chan_idx, new_source);
-                    }
+                    );
+                    assert!(sample.data.len() > 0);
+                    device.latch(chan_idx, new_source, sample_idx);
                 }
             }
 
@@ -73,6 +75,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
             trace!("tick");
         }
     }
+
     debug!("exit1");
     device.stop_all();
     device.wait();

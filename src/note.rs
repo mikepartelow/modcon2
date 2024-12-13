@@ -17,19 +17,19 @@ pub fn from_period(period: u16) -> Result<String, String> {
     // FIXME: probably need to return "close enough" notes, too (for sure, some songs use notes not found here - wrong octaves?)
     for (i, p) in OCTAVE1.iter().enumerate() {
         if period == *p {
-            return Ok(format!("{}4", NOTES[i]));
+            return Ok(format!("{}1", NOTES[i]));
         }
     }
 
     for (i, p) in OCTAVE2.iter().enumerate() {
         if period == *p {
-            return Ok(format!("{}5", NOTES[i]));
+            return Ok(format!("{}2", NOTES[i]));
         }
     }
 
     for (i, p) in OCTAVE3.iter().enumerate() {
         if period == *p {
-            return Ok(format!("{}6", NOTES[i]));
+            return Ok(format!("{}3", NOTES[i]));
         }
     }
 

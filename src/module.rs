@@ -158,8 +158,14 @@ fn read_sample_data<R: Read>(file: &mut R, samples: &mut [Sample]) -> io::Result
 
         file.read_exact(&mut data)?;
 
+        if s.data.len() != 0 {
+            assert!(s.length > 1);
+            data = data[2..data.len()].to_vec();
+        }
+
         // FIXME: does this really actually do anything? It's meant to, but does it affect sound?
         let scaling_factor = s.volume as f32 / 64.0;
+        debug!("scaling factor: {}", scaling_factor);
 
         // Convert signed 8-bit to unsigned 8-bit PCM format
         // Scale by volume
