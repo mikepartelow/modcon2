@@ -1,11 +1,9 @@
-use crate::device::Device;
 use crate::module::Module;
 use crate::pattern::Pattern;
 use crate::pcm;
-use colored::Colorize;
+use crate::{device::Device, formatter::RowFormatter};
 use log::*;
 use rodio::{OutputStream, Sink};
-use std::str::FromStr;
 use std::thread;
 use tokio::time::{self, Duration};
 
@@ -13,55 +11,23 @@ pub struct Config {
     pub channels: Vec<usize>,
 }
 
-// FIXME: this should take a sample factory, get rid of play_module_notes
 pub async fn play_module(module: &mut Module, cfg: Config) {
     let mut device = Device::new(module.num_channels);
 
     // FIXME: this (tempo) is set by the very first effect in the mod, and differs between thraddash.mod and knullakuk.mod
     let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
+    let mut rowfmt = RowFormatter::new(&module);
+
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
-        let print_prefix = format!(
-            "{:03}/{:03} P{:02}",
-            i,
-            module.pattern_table.len() - 1,
-            pidx
-        )
-        .dimmed(); // FIXME: rustier than this
+        rowfmt.set_prefix(i, pidx);
 
         let mut p_prevs: Vec<u16> = vec![0; module.num_channels];
 
         let p: &mut Pattern = &mut module.patterns[pidx as usize];
 
         for (row, channels) in p.by_ref() {
-            let mut row_str =
-                String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
-
-            for ch in &channels {
-                // FIXME: refactor, unit test
-                row_str += &format!(
-                    "{}{} {} {} {}",
-                    "|".red(),
-                    ch.note.bright_yellow(),
-                    if ch.sample == 0 {
-                        "   ".cyan()
-                    } else {
-                        format!("{:02x}h", ch.sample).cyan()
-                    },
-                    if ch.period == 0 {
-                        "   ".dimmed()
-                    } else {
-                        format!("{:03}", ch.period).white()
-                    },
-                    if ch.effect == 0 {
-                        "     ".green()
-                    } else {
-                        format!("{:04x}h", ch.effect).green()
-                    },
-                );
-            }
-
-            println!("{} {}{}", print_prefix, row_str.blue(), "|".red());
+            println!("{}", rowfmt.format_row(row, &channels));
 
             for chan_idx in 0..module.num_channels {
                 let ch = &channels[chan_idx];
