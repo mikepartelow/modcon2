@@ -157,7 +157,7 @@ fn check_magic_four<R: Read>(file: &mut R) -> io::Result<()> {
     Ok(())
 }
 
-fn read_sample_data<R: Read>(file: &mut R, samples: &mut Vec<Sample>) -> io::Result<()> {
+fn read_sample_data<R: Read>(file: &mut R, samples: &mut [Sample]) -> io::Result<()> {
     for s in samples.iter_mut() {
         let mut data = vec![0; s.length as usize];
         debug!("reading {} bytes of sample data", s.length);

@@ -2,9 +2,8 @@ use rodio::Source;
 use rodio::{OutputStream, OutputStreamHandle, Sink};
 
 pub struct Device {
-    num_channels: usize,
     output_handle: OutputStreamHandle,
-    output_stream: OutputStream,
+    _output_stream: OutputStream,
     sinks: Vec<Sink>,
 }
 
@@ -13,8 +12,7 @@ impl Device {
         let (stream, stream_handle) = OutputStream::try_default().unwrap();
 
         let mut d = Self {
-            num_channels,
-            output_stream: stream,
+            _output_stream: stream,
             output_handle: stream_handle,
             sinks: Vec::with_capacity(num_channels),
         };

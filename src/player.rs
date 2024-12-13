@@ -35,10 +35,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
         )
         .dimmed(); // FIXME: rustier than this
 
-        let mut p_prevs = Vec::new();
-        for _ in 0..4 {
-            p_prevs.push(0);
-        }
+        let mut p_prevs: Vec<u16> = vec![0; module.num_channels];
 
         let p: &mut Pattern = &mut module.patterns[pidx as usize];
         for (row, channels) in p.by_ref() {
@@ -71,7 +68,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
 
             println!("{} {}{}", print_prefix, row_str.blue(), "|".red());
 
-            for chan_idx in 0..4 {
+            for chan_idx in 0..module.num_channels {
                 let ch = &channels[chan_idx];
                 let p_prev = p_prevs[chan_idx];
                 let sample_idx: usize = if ch.sample == 0 {
