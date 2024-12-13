@@ -9,13 +9,14 @@ use tokio::time::{self, Duration};
 
 pub struct Config {
     pub channels: Vec<usize>,
+    pub interval: Duration,
 }
 
 pub async fn play_module(module: &mut Module, cfg: Config) {
     let mut device = Device::new(module.num_channels);
 
     // FIXME: this (tempo) is set by the very first effect in the mod, and differs between thraddash.mod and knullakuk.mod
-    let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
+    let mut interval = time::interval(cfg.interval);
 
     let mut rowfmt = RowFormatter::new(module);
 

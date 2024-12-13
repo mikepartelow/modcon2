@@ -1,6 +1,7 @@
 use crate::pattern::Pattern;
 use crate::sample::Sample;
 use log::*;
+use std::env;
 use std::fmt::{self};
 use std::io::Read;
 use std::io::{self, Seek, SeekFrom};
@@ -180,6 +181,11 @@ fn read_sample_data<R: Read>(file: &mut R, samples: &mut [Sample]) -> io::Result
 }
 
 fn check_length<R: Read + Seek>(mut file: R) -> io::Result<()> {
+    match env::var("CHECK_LENGTH") {
+        Ok(val) if val == "false" => return Ok(()),
+        _ => {}
+    };
+
     // FIXME: determine expected size, then compare with expected - don't just check that we are at EOF
     let pos = file.stream_position()?;
     file.seek(SeekFrom::End(0))?;

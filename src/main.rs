@@ -4,6 +4,7 @@ use modcon2::module;
 use std::env;
 use std::fs::File;
 use std::process;
+use std::time::Duration;
 
 extern crate log;
 extern crate pretty_env_logger;
@@ -65,5 +66,16 @@ fn make_player_config() -> player::Config {
         Err(_) => vec![0, 1, 2, 3],
     };
 
-    player::Config { channels: chan_vec }
+    // FIXME: this must all go away and be replaced by reading the tempo effect from the file
+    // https://modarchive.org/forums/index.php?topic=2709.0
+    let key = "TICK_MULTIPLIER";
+    let tick_multiplier = match env::var(key) {
+        Ok(val) => val.parse::<u64>(),
+        Err(_) => Ok(20),
+    };
+
+    player::Config {
+        channels: chan_vec,
+        interval: Duration::from_millis(6 * tick_multiplier.unwrap()),
+    }
 }

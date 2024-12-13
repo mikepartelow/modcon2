@@ -12,39 +12,21 @@ pub struct Device {
 
 impl Device {
     pub fn new(num_channels: usize) -> Self {
-        let (stream, stream_handle) = OutputStream::try_default().unwrap();
+        assert!(num_channels == 4); // FIXME: while true for now, it should not remain so
+
+        let (_output_stream, output_handle) = OutputStream::try_default().unwrap();
         let mut sinks = Vec::with_capacity(num_channels);
 
-        for i in 0..num_channels {
-            // d.sinks.push(Sink::try_new(&d.output_handle).unwrap());
-            let sink = if i == 0 || i == 3 {
-                SpatialSink::try_new(
-                    &stream_handle,
-                    [-1.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                )
-                .unwrap()
-            } else {
-                SpatialSink::try_new(
-                    &stream_handle,
-                    [1.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0],
-                )
-                .unwrap()
-            };
-            sinks.push(sink);
+        for chan_idx in 0..num_channels {
+            sinks.push(make_spatial_sink(chan_idx, &output_handle));
         }
 
-        let mut d = Self {
-            _output_stream: stream,
-            output_handle: stream_handle,
-            sinks: sinks,
+        Self {
+            _output_stream,
+            output_handle,
+            sinks,
             source_ids: vec![0; num_channels],
-        };
-
-        d
+        }
     }
 
     pub fn latch(
@@ -54,30 +36,9 @@ impl Device {
         source_id: usize,
     ) {
         // fixme: bounds check
-        self.sinks[channel_idx].stop(); // seems unnecessary
+        self.sinks[channel_idx].stop(); // seems unnecessary in practice
 
-        // self.sinks[channel_idx] = Sink::try_new(&self.output_handle).unwrap();
-        // FIXME: de-dup this code versus new()
-        // FIXME: un-hardcode the magic numbers
-        // FIXME: assert num_channels == 4 or support arbitrary num_channels
-        let sink = if channel_idx == 0 || channel_idx == 3 {
-            SpatialSink::try_new(
-                &self.output_handle,
-                [-1.0, 0.0, 0.0],
-                [-1.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0],
-            )
-            .unwrap()
-        } else {
-            SpatialSink::try_new(
-                &self.output_handle,
-                [1.0, 0.0, 0.0],
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-            )
-            .unwrap()
-        };
-        self.sinks[channel_idx] = sink;
+        self.sinks[channel_idx] = make_spatial_sink(channel_idx, &self.output_handle);
         self.sinks[channel_idx].append(source);
 
         self.source_ids[channel_idx] = source_id;
@@ -103,5 +64,31 @@ impl Device {
         for sink in &self.sinks {
             sink.sleep_until_end();
         }
+    }
+}
+
+fn make_spatial_sink(chan_idx: usize, output_handle: &OutputStreamHandle) -> SpatialSink {
+    // FIXME: un-hardcode the magic numbers
+    // FIXME: understand the magic numbers
+    // FIXME: error handling, not unwrap
+    match chan_idx {
+        // Channels 1 and 4 are on the left
+        // https://www.aes.id.au/modformat.html
+        0 | 3 => SpatialSink::try_new(
+            output_handle,
+            [-1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+        )
+        .unwrap(),
+        // channels 2 and 3 are on the right.
+        1 | 2 => SpatialSink::try_new(
+            output_handle,
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
+            [-1.0, 0.0, 0.0],
+        )
+        .unwrap(),
+        _ => panic!("FIXME"),
     }
 }
