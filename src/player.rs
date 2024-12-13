@@ -67,7 +67,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                         sample.loop_offset,
                         sample.is_looped(),
                     );
-                    assert!(sample.data.len() > 0);
+                    assert!(!sample.data.is_empty());
                     device.latch(chan_idx, new_source, sample_idx);
                 }
             }

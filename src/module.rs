@@ -159,7 +159,7 @@ fn read_sample_data<R: Read>(file: &mut R, samples: &mut [Sample]) -> io::Result
 
         file.read_exact(&mut data)?;
 
-        if s.data.len() != 0 {
+        if !s.data.is_empty() {
             assert!(s.length > 1);
             data = data[2..data.len()].to_vec();
         }

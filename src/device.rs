@@ -1,6 +1,6 @@
-use core::num;
 
-use rodio::{OutputStream, OutputStreamHandle, Sink};
+
+use rodio::{OutputStream, OutputStreamHandle};
 use rodio::{Source, SpatialSink};
 
 pub struct Device {

@@ -19,7 +19,7 @@ impl RowFormatter {
     }
 
     pub fn header(&self) -> String {
-        format!("POS/TOTAL   ROW      SAMPLE  EFFECT\n        PATTERN  NOTE    PERIOD")
+        "POS/TOTAL   ROW      SAMPLE  EFFECT\n        PATTERN  NOTE    PERIOD".to_string()
     }
 
     pub fn set_prefix(&mut self, row_idx: usize, pattern_idx: u8) {
