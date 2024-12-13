@@ -1,5 +1,5 @@
 use crate::module::Module;
-use crate::pattern::Pattern;
+
 use crate::pcm;
 use crate::{device::Device, formatter::RowFormatter};
 use log::*;
@@ -25,8 +25,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
         for (row, channels) in module.patterns[pidx as usize].by_ref() {
             println!("{}", rowfmt.format_row(row, &channels));
 
-            for chan_idx in 0..module.num_channels {
-                let ch = &channels[chan_idx];
+            for (chan_idx, ch) in channels.iter().enumerate() {
                 let sample_idx: usize = match ch.sample {
                     0 => 0,                        // ch.sample == 0 means "continue playing"
                     _ => (ch.sample - 1) as usize, // ch.sample > 0 refers to our 0-indexed Vec<Sample>

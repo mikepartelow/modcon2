@@ -45,6 +45,6 @@ impl Sample {
     }
 
     pub fn is_looped(&self) -> bool {
-        return self.loop_length > 1;
+        self.loop_length > 1
     }
 }
