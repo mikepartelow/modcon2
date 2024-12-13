@@ -15,7 +15,7 @@ pub struct Config {
 pub async fn play_module(module: &mut Module, cfg: Config) {
     let mut device = Device::new(module.num_channels);
 
-    // FIXME: this (tempo) is set by the very first effect in the mod, and differs between thraddash.mod and knullakuk.mod
+    // FIXME: this (tempo) is set by the very first effect in the mod (and then potentially reset later)
     let mut interval = time::interval(cfg.interval);
 
     let mut rowfmt = RowFormatter::new(module);
@@ -34,8 +34,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                 };
 
                 if ch.period == 0 {
-                    // device.stop(chan_idx); // FIXME: is this necessary and semantically correct?
-                    continue; // this is necessary to avoid divide by zero when computing `rate`
+                    continue; // avoid divide by zero when computing `rate`
                 }
 
                 let sample = match ch.sample {
