@@ -8,7 +8,6 @@ use std::io::{self, Seek, SeekFrom};
 pub struct Module {
     pub num_channels: usize,
     pub title: String,
-    pub num_positions: usize,
     pub pattern_table: Vec<u8>,
     pub patterns: Vec<Pattern>,
     pub samples: Vec<Sample>,
@@ -18,14 +17,12 @@ impl Module {
     pub fn new(
         title: String,
         samples: Vec<Sample>,
-        num_positions: usize,
         pattern_table: Vec<u8>,
         patterns: Vec<Pattern>,
     ) -> Self {
         Module {
             num_channels: 4,
             title,
-            num_positions,
             samples,
             pattern_table,
             patterns,
@@ -47,14 +44,15 @@ pub fn read<R: Read + Seek>(mut file: R) -> io::Result<Module> {
     let title = read_title(&mut file)?;
     let mut samples = read_sample_headers(&mut file)?;
 
+    // Number of song positions (ie. number of patterns played throughout the song).
+    // second byte is "Historically set to 127, but can be safely ignored."
+    // https://www.aes.id.au/modformat.html
     let mut bytes = vec![0; 2];
     file.read_exact(&mut bytes)?;
 
     let num_positions = bytes[0] as usize;
-    info!("num positions: {}", num_positions);
-    // second byte is "Historically set to 127, but can be safely ignored." : https://www.aes.id.au/modformat.html
 
-    let (pattern_table, num_patterns) = read_pattern_table(&mut file)?;
+    let (pattern_table, num_patterns) = read_pattern_table(&mut file, num_positions)?;
 
     check_magic_four(&mut file)?;
 
@@ -64,13 +62,7 @@ pub fn read<R: Read + Seek>(mut file: R) -> io::Result<Module> {
 
     check_length(&mut file)?;
 
-    Ok(Module::new(
-        title,
-        samples,
-        num_positions,
-        pattern_table,
-        patterns,
-    ))
+    Ok(Module::new(title, samples, pattern_table, patterns))
 }
 
 fn read_title<R: Read>(file: &mut R) -> io::Result<String> {
@@ -101,7 +93,7 @@ fn read_sample_headers<R: Read>(file: &mut R) -> io::Result<Vec<Sample>> {
     Ok(samples)
 }
 
-fn read_pattern_table<R: Read>(file: &mut R) -> io::Result<(Vec<u8>, usize)> {
+fn read_pattern_table<R: Read>(file: &mut R, num_positions: usize) -> io::Result<(Vec<u8>, usize)> {
     let mut pattern_table = vec![0; 128];
     file.read_exact(&mut pattern_table)?;
 
@@ -115,6 +107,8 @@ fn read_pattern_table<R: Read>(file: &mut R) -> io::Result<(Vec<u8>, usize)> {
     }
     num_patterns_used += 1;
     // end of "this works for"
+
+    pattern_table.truncate(num_positions);
 
     Ok((pattern_table, num_patterns_used))
 }

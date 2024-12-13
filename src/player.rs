@@ -21,12 +21,6 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
     let mut interval = time::interval(Duration::from_millis(20 * 6)); // 20 * 6 is not arbitrary: https://modarchive.org/forums/index.php?topic=2709.0
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
-        if i == module.num_positions {
-            // FIXME: hard-coded for knullakuk.mod
-            // println!("FIXME: pidx==0 is not the way");
-            device.stop_all();
-            break; // FIXME: add a pattern table (aka order) iterator (or iterator generator) to module
-        }
         let print_prefix = format!(
             "{:03}/{:03} P{:02}",
             i,
@@ -38,6 +32,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
         let mut p_prevs: Vec<u16> = vec![0; module.num_channels];
 
         let p: &mut Pattern = &mut module.patterns[pidx as usize];
+
         for (row, channels) in p.by_ref() {
             let mut row_str =
                 String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
@@ -136,6 +131,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
         }
     }
     debug!("exit1");
+    device.stop_all();
     device.wait();
     debug!("exit2");
 }
