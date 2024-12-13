@@ -4,6 +4,8 @@ An Amiga module player in Rust.
 
 More FIXMEs than tests, unfortunately. Published prematurely so I can blog about how I got here.
 
+Use [ProTracker 2 clone](https://16-bits.org/pt2.php) to hear how the music is actually supposed to sound - more or less.
+
 ## License
 
 Copyright (c) 2024 Mike Partelow
@@ -23,3 +25,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 - https://github.com/cmatsuoka/tracker-history
 - https://github.com/Prezzodaman/pymod/blob/main/pymod/pymod.py
 - https://github.com/NardJ/ModTrack-for-Python/blob/master/modtrack/tracker.py
+- https://16-bits.org/pt2.php

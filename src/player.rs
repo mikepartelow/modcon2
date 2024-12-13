@@ -19,6 +19,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
     let mut interval = time::interval(cfg.interval);
 
     let mut rowfmt = RowFormatter::new(module);
+    println!("{}", rowfmt.header());
 
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
         rowfmt.set_prefix(i, pidx);
