@@ -43,4 +43,8 @@ impl Sample {
             data: Vec::new(),
         }
     }
+
+    pub fn is_looped(&self) -> bool {
+        return self.loop_length > 1;
+    }
 }

@@ -22,25 +22,18 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
     for (i, &pidx) in module.pattern_table.iter().enumerate() {
         rowfmt.set_prefix(i, pidx);
 
-        let mut p_prevs: Vec<u16> = vec![0; module.num_channels];
-
-        let p: &mut Pattern = &mut module.patterns[pidx as usize];
-
-        for (row, channels) in p.by_ref() {
+        for (row, channels) in module.patterns[pidx as usize].by_ref() {
             println!("{}", rowfmt.format_row(row, &channels));
 
             for chan_idx in 0..module.num_channels {
                 let ch = &channels[chan_idx];
-                let p_prev = p_prevs[chan_idx];
                 let sample_idx: usize = match ch.sample {
                     0 => 0,                        // ch.sample == 0 means "continue playing"
                     _ => (ch.sample - 1) as usize, // ch.sample > 0 refers to our 0-indexed Vec<Sample>
                 };
 
-                if ch.period == 0 && p_prev == 0 {
-                    // no change from "not playing yet"
-                } else if ch.period != 0 && ch.sample > 0 {
-                    let period = if ch.period == 0 { p_prev } else { ch.period };
+                if ch.sample > 0 {
+                    let period = ch.period;
                     if ch.period != 0 {
                         // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
                         // FIXME: note 123456
@@ -54,14 +47,11 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                             .map(|b| (*b as f32 * scaling_factor) as u8)
                             .collect();
 
-                        let ll = module.samples[sample_idx].loop_length;
-                        let loop_it = ll > 1;
-
                         let new_source = pcm::Source::new(
                             module.samples[sample_idx].name.to_string(),
                             samples,
                             rate,
-                            loop_it,
+                            module.samples[sample_idx].is_looped(),
                             module.samples[sample_idx].loop_offset.into(),
                         )
                         .expect("FIXME");
@@ -76,16 +66,11 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                                 module.samples[sample_idx].finetune,
                                 module.samples[sample_idx].loop_length,
                                 module.samples[sample_idx].loop_offset,
-                                loop_it
+                                module.samples[sample_idx].is_looped(),
                             );
                             device.latch(chan_idx, new_source);
                         }
-                    } else if ch.sample == 0 {
-                        println!("STOP!!");
-                        device.stop(chan_idx);
                     }
-
-                    p_prevs[chan_idx] = period;
                 }
             }
 

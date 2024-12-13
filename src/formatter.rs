@@ -1,13 +1,9 @@
 use crate::module::Module;
 
-
-use crate::{channel::Channel};
-use colored::{Colorize};
-
+use crate::channel::Channel;
+use colored::Colorize;
 
 use std::str::FromStr;
-
-
 
 pub struct RowFormatter {
     pattern_table_len: usize,
@@ -29,7 +25,7 @@ impl RowFormatter {
         )
     }
 
-    pub fn format_row(&mut self, row: usize, channels: &[Channel]) -> String {
+    pub fn format_row(&self, row: usize, channels: &[Channel]) -> String {
         let mut row_str =
             String::from_str(&format!("R{:02}:", row)).expect("FIXME: expect is discouraged");
 
