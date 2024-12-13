@@ -1,8 +1,8 @@
 # modcon2
 
-An Amiga module player in Rust.
+An Amiga module player in Rust. 
 
-FIXME: link to blog post
+More FIXMEs than tests, unfortunately. Published prematurely so I can blog about how I got here.
 
 ## License
 

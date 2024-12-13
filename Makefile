@@ -7,22 +7,22 @@ fmt::
 	cargo clippy --fix
 
 arilou:
-	CHECK_LENGTH=false cargo run ../arilou.mod
+	CHECK_LENGTH=false cargo run ./mods/arilou.mod
 
 hyperspace:
-	TICK_MULTIPLIER=10 cargo run ../hyperspace.mod
+	TICK_MULTIPLIER=10 cargo run ./mods/hyperspace.mod
 
 kk:
-	cargo run ../knulla-kuk.mod
+	cargo run ./mods/knulla-kuk.mod
 
 kk3:
-	PLAY_CHANS=3 cargo run ../knulla-kuk.mod
+	PLAY_CHANS=3 cargo run ./mods/knulla-kuk.mod
 
 mycon:
-	cargo run ../Mycon.mod
+	cargo run ./mods/Mycon.mod
 
 yehat:
-	cargo run ../Yehat.mod
+	cargo run ./mods/Yehat.mod
 
 thraddash:
-	TICK_MULTIPLIER=10 cargo run ../thraddash.mod
+	TICK_MULTIPLIER=10 cargo run ./mods/thraddash.mod
