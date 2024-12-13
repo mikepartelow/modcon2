@@ -27,7 +27,7 @@ impl Source {
 
     pub fn new(
         name: String,
-        samples: Vec<u8>,
+        samples: &[u8],
         rate: u32,
         loop_it: bool,
         loop_offset: usize,

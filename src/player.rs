@@ -31,44 +31,37 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                     _ => (ch.sample - 1) as usize, // ch.sample > 0 refers to our 0-indexed Vec<Sample>
                 };
 
+                // FIXME: there is probably some signal to "stop playing sample"
+
                 if ch.sample > 0 {
-                    let period = ch.period;
-                    if ch.period != 0 {
-                        // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
-                        // FIXME: note 123456
-                        let rate = (7159090.5 / (period as f32 * 2.0)) as u32;
-                        let scaling_factor = module.samples[sample_idx].volume as f32 / 64.0;
+                    // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
+                    // FIXME: note 123456
+                    let rate: u32 = (7159090.5 / (ch.period as f32 * 2.0)) as u32;
 
-                        // FIXME: do the scaling at sample load time, not here
-                        let samples: Vec<u8> = module.samples[sample_idx]
-                            .data
-                            .iter()
-                            .map(|b| (*b as f32 * scaling_factor) as u8)
-                            .collect();
+                    let sample = &module.samples[sample_idx];
 
-                        let new_source = pcm::Source::new(
-                            module.samples[sample_idx].name.to_string(),
-                            samples,
-                            rate,
-                            module.samples[sample_idx].is_looped(),
-                            module.samples[sample_idx].loop_offset.into(),
-                        )
-                        .expect("FIXME");
+                    let new_source = pcm::Source::new(
+                        module.samples[sample_idx].name.to_string(),
+                        &sample.data,
+                        rate,
+                        sample.is_looped(),
+                        sample.loop_offset.into(),
+                    )
+                    .expect("FIXME");
 
-                        // FIXME: make this more readable, like info!(module.samples[sample_idx]) calls some Sample method
-                        if cfg.channels.contains(&chan_idx) {
-                            info!(
-                                "latching: {:02x} [{}] v{} f{} ll{} lo{} li{}",
-                                sample_idx,
-                                module.samples[sample_idx].name,
-                                module.samples[sample_idx].volume,
-                                module.samples[sample_idx].finetune,
-                                module.samples[sample_idx].loop_length,
-                                module.samples[sample_idx].loop_offset,
-                                module.samples[sample_idx].is_looped(),
-                            );
-                            device.latch(chan_idx, new_source);
-                        }
+                    // FIXME: make this more readable, like info!(sample) calls some Sample method
+                    if cfg.channels.contains(&chan_idx) {
+                        info!(
+                            "latching: {:02x} [{}] v{} f{} ll{} lo{} li{}",
+                            sample_idx,
+                            sample.name,
+                            sample.volume,
+                            sample.finetune,
+                            sample.loop_length,
+                            sample.loop_offset,
+                            sample.is_looped(),
+                        );
+                        device.latch(chan_idx, new_source);
                     }
                 }
             }
@@ -108,8 +101,8 @@ pub fn play_samples(module: &mut Module, period: u8) {
         // FIXME: unify with note 123456
         let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
 
-        let source = pcm::Source::new(sample.name.to_string(), sample.data.clone(), rate, false, 0)
-            .expect("FIXME");
+        let source =
+            pcm::Source::new(sample.name.to_string(), &sample.data, rate, false, 0).expect("FIXME");
 
         sink.append(source);
         sink.sleep_until_end();

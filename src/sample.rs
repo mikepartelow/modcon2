@@ -29,10 +29,10 @@ impl Sample {
             .iter()
             .position(|&byte| byte == 0)
             .unwrap_or(bytes.len());
-        let valid_utf8 = String::from_utf8_lossy(&bytes[0..end]).to_string();
+        let name = String::from_utf8_lossy(&bytes[0..end]).to_string();
 
         Self {
-            name: valid_utf8,
+            name,
             // Sample length in words (1 word = 2 bytes).
             length: 2 * u16::from_be_bytes([bytes[22], bytes[23]]),
             finetune: bytes[24],
