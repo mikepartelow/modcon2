@@ -28,7 +28,14 @@ async fn main() {
         Ok(mut module) => {
             if command.is_empty() {
                 let cfg = make_player_config();
-                player::play_module(&mut module, cfg).await;
+                let effects = player::play_module(&mut module, cfg).await;
+
+                let mut effects = effects.into_iter().collect::<Vec<_>>();
+                effects.sort();
+
+                for effect in effects {
+                    println!(" effect: {:04x}", effect);
+                }
             } else if command == "samples" || command == "ss" {
                 let period_c3 = 214;
                 player::play_samples(&mut module, period_c3);

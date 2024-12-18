@@ -8,7 +8,7 @@ pub struct Sample {
     pub volume: u8,
     pub loop_offset: u16,
     pub loop_length: u16,
-    pub data: Vec<u8>,
+    pub data: Vec<f32>,
 }
 
 impl fmt::Display for Sample {

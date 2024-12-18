@@ -27,19 +27,18 @@ impl Source {
 
     pub fn new(
         name: String,
-        samples: &[u8],
+        samples: &[f32],
         rate: u32,
         loop_it: bool,
         loop_offset: usize,
     ) -> Result<Self, Error> {
-        if samples.is_empty() {
-            return Err(Error::Sample("0 length sample".to_string()));
-        }
+        // FIXME: log a warning. it's weird but apparently not an error to have a 0-len sample. yehat has one.
 
-        let f32_samples = samples
-            .iter()
-            .map(|b| (*b as i16 - 128) as f32 / 128.0)
-            .collect();
+        // if samples.is_empty() {
+        //     return Err(Error::Sample("0 length sample".to_string()));
+        // }
+
+        let f32_samples = samples.iter().map(|b| *b / 128.0).collect();
 
         Ok(Source {
             loop_it,

@@ -4,6 +4,7 @@ use crate::pcm;
 use crate::{device::Device, formatter::RowFormatter};
 use log::*;
 use rodio::{OutputStream, Sink};
+use std::collections::HashSet;
 use std::thread;
 use tokio::time::{self, Duration};
 
@@ -12,8 +13,9 @@ pub struct Config {
     pub interval: Duration,
 }
 
-pub async fn play_module(module: &mut Module, cfg: Config) {
+pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
     let mut device = Device::new(module.num_channels);
+    let mut effects = HashSet::new();
 
     // FIXME: this (tempo) is set by the very first effect in the mod (and then potentially reset later)
     let mut interval = time::interval(cfg.interval);
@@ -42,13 +44,39 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                     _ => &module.samples[sample_idx],
                 };
 
+                // effects:
+                // yehat: 0, c, e, f (3+),
+                // thraddash: 0, 2, c, e, f
+                // mycon: 0, c, e, f
+                //
+                // hyperspace: 0, c, f - impl 0 next
+                //
+                // kk: 0, 1, 2, 3, 4, 6, a, c, d, e, f
+                let effect = ((ch.effect >> 8) & 0xff) as u8;
+                effects.insert(effect);
+
+                // impl effect 0 - hyperspace!
+
+                let volume_scaling_factor = match effect {
+                    0xc => (ch.effect & 0xff) as f32,
+                    _ => 64.0,
+                } / 64.0;
+                debug!("scaling factor: {:.6}", volume_scaling_factor);
+
+                // Convert signed 8-bit to unsigned 8-bit PCM format
+                // Scale by volume
+
                 // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
                 // FIXME: note 123456
                 let rate: u32 = (7159090.5 / (ch.period as f32 * 2.0)) as u32;
 
                 let new_source = pcm::Source::new(
                     module.samples[sample_idx].name.to_string(),
-                    &sample.data,
+                    &sample
+                        .data
+                        .iter()
+                        .map(|b| (*b * volume_scaling_factor))
+                        .collect::<Vec<f32>>(),
                     rate,
                     sample.is_looped(),
                     sample.loop_offset.into(),
@@ -58,7 +86,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                 // FIXME: make this more readable, like info!(sample) calls some Sample method
                 if cfg.channels.contains(&chan_idx) {
                     info!(
-                        "latching: {:02x} [{}] v{} f{} ll{} lo{} li{}",
+                        "latching: {:02x} [{}] v{} f{} ll{} lo{} li{} sl{}",
                         sample_idx,
                         sample.name,
                         sample.volume,
@@ -66,8 +94,8 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                         sample.loop_length,
                         sample.loop_offset,
                         sample.is_looped(),
+                        sample.data.len(),
                     );
-                    assert!(!sample.data.is_empty());
                     device.latch(chan_idx, new_source, sample_idx);
                 }
             }
@@ -81,6 +109,8 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
     device.stop_all();
     device.wait();
     debug!("exit2");
+
+    effects
 }
 
 pub fn play_samples(module: &mut Module, period: u8) {
