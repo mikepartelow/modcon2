@@ -1,0 +1,25 @@
+on: [push]
+
+name: build and lint
+
+jobs:
+  check:
+    name: modcon2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: 1.77.1
+            override: true
+            components: rustfmt, clippy
+
+      - name: deps
+        run: sudo apt-get install -yqq libasound2-dev
+
+      - name: lint
+        run: make lint
+
+      - name: fmt
+        run: RUSTFLAGS="-D warnings" cargo fmt && cargo clippy
