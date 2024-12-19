@@ -74,7 +74,7 @@ fn make_spatial_sink(chan_idx: usize, output_handle: &OutputStreamHandle) -> Spa
         // https://www.aes.id.au/modformat.html
         0 | 3 => SpatialSink::try_new(
             output_handle,
-            [-1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0],
             [1.0, 0.0, 0.0],
         )
@@ -82,7 +82,7 @@ fn make_spatial_sink(chan_idx: usize, output_handle: &OutputStreamHandle) -> Spa
         // channels 2 and 3 are on the right.
         1 | 2 => SpatialSink::try_new(
             output_handle,
-            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0],
             [-1.0, 0.0, 0.0],
         )
