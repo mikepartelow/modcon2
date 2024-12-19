@@ -75,14 +75,6 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                     }
                 }
 
-                // Convert signed 8-bit to unsigned 8-bit PCM format
-                // Scale by volume
-
-                // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
-                // FIXME: note 123456
-                let rate: u32 = (7159090.5 / (ch.period as f32 * 2.0)) as u32;
-                println!("{}", ch.period);
-
                 let new_source = pcm::Source::new(
                     module.samples[sample_idx].name.to_string(),
                     &sample
