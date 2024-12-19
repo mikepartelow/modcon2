@@ -1,11 +1,12 @@
 use crate::module::Module;
 
 use crate::pcm;
+use crate::sample::Sample;
 use crate::{device::Device, formatter::RowFormatter};
 use log::*;
 use rodio::{OutputStream, Sink};
 use std::collections::HashSet;
-use std::thread;
+use std::thread::{self, sleep};
 use tokio::time::{self, Duration};
 
 pub struct Config {
@@ -63,12 +64,24 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                 } / 64.0;
                 debug!("scaling factor: {:.6}", volume_scaling_factor);
 
+                let mut arp = false;
+                if effect == 0 {
+                    let x = (ch.effect >> 4) & 0xf;
+                    let y = ch.effect & 0xf;
+
+                    if x != 0 || y != 0 {
+                        arp = true;
+                        debug!("effect 0: x={} y={}", x, y)
+                    }
+                }
+
                 // Convert signed 8-bit to unsigned 8-bit PCM format
                 // Scale by volume
 
                 // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
                 // FIXME: note 123456
                 let rate: u32 = (7159090.5 / (ch.period as f32 * 2.0)) as u32;
+                println!("{}", ch.period);
 
                 let new_source = pcm::Source::new(
                     module.samples[sample_idx].name.to_string(),
@@ -77,9 +90,10 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                         .iter()
                         .map(|b| (*b * volume_scaling_factor))
                         .collect::<Vec<f32>>(),
-                    rate,
+                    ch.period.into(),
                     sample.is_looped(),
                     sample.loop_offset.into(),
+                    arp,
                 )
                 .expect("FIXME");
 
@@ -113,6 +127,30 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
     effects
 }
 
+pub fn play_sample(sample: &Sample, period: u8, arp: bool) {
+    let mut device = Device::new(4);
+    let rate: u32 = (7159090.5 / (period as f32 * 2.0)) as u32;
+
+    let source = pcm::Source::new(
+        sample.name.to_string(),
+        &sample.data,
+        rate,
+        true,
+        sample.loop_offset.into(),
+        arp,
+    )
+    .expect("FIXME");
+
+    device.latch(0, source, 1);
+
+    sleep(Duration::from_secs(30));
+
+    debug!("exit1");
+    device.stop_all();
+    device.wait();
+    debug!("exit2");
+}
+
 pub fn play_samples(module: &mut Module, period: u8) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
@@ -138,8 +176,8 @@ pub fn play_samples(module: &mut Module, period: u8) {
         // FIXME: unify with note 123456
         let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
 
-        let source =
-            pcm::Source::new(sample.name.to_string(), &sample.data, rate, false, 0).expect("FIXME");
+        let source = pcm::Source::new(sample.name.to_string(), &sample.data, rate, false, 0, false)
+            .expect("FIXME");
 
         sink.append(source);
         sink.sleep_until_end();
