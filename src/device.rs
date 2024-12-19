@@ -66,8 +66,6 @@ impl Device {
 }
 
 fn make_spatial_sink(chan_idx: usize, output_handle: &OutputStreamHandle) -> SpatialSink {
-    // FIXME: un-hardcode the magic numbers
-    // FIXME: understand the magic numbers
     // FIXME: error handling, not unwrap
     match chan_idx {
         // Channels 1 and 4 are on the left

@@ -93,6 +93,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                     ch.period.into(),
                     sample.is_looped(),
                     sample.loop_offset.into(),
+                    sample.loop_length.into(),
                     arp,
                 )
                 .expect("FIXME");
@@ -137,6 +138,7 @@ pub fn play_sample(sample: &Sample, period: u8, arp: bool) {
         rate,
         true,
         sample.loop_offset.into(),
+        sample.loop_length.into(),
         arp,
     )
     .expect("FIXME");
@@ -176,8 +178,16 @@ pub fn play_samples(module: &mut Module, period: u8) {
         // FIXME: unify with note 123456
         let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
 
-        let source = pcm::Source::new(sample.name.to_string(), &sample.data, rate, false, 0, false)
-            .expect("FIXME");
+        let source = pcm::Source::new(
+            sample.name.to_string(),
+            &sample.data,
+            rate,
+            false,
+            0,
+            0,
+            false,
+        )
+        .expect("FIXME");
 
         sink.append(source);
         sink.sleep_until_end();
