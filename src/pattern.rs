@@ -1,4 +1,5 @@
 use crate::channel::Channel;
+use crate::effect::Effect;
 use crate::note;
 
 #[derive(Debug)]
@@ -39,7 +40,7 @@ impl Iterator for Pattern {
                 note,
                 sample,
                 period,
-                effect,
+                effect: Effect::parse(effect),
             });
         }
         self.ptr += 4 * 4; // FIXME: replace magic numbers

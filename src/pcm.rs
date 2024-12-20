@@ -1,8 +1,10 @@
-use crate::Error;
+use crate::{
+    effect::{Effect, Kind},
+    Error,
+};
 use rodio;
 use std::time::Duration;
 
-#[derive(Clone)]
 pub struct Source {
     pub name: String,
 
@@ -13,7 +15,7 @@ pub struct Source {
     period: u32,
     samples: Vec<f32>,
 
-    arp: bool,
+    effect: Effect,
     sample_end: usize,
 }
 
@@ -27,7 +29,7 @@ impl Source {
             ptr: 0,
             period: 0,
             samples: Vec::new(),
-            arp: false,
+            effect: Effect::zero(),
             sample_end: 1,
         }
     }
@@ -39,7 +41,7 @@ impl Source {
         loop_it: bool,
         loop_offset: usize,
         loop_length: usize,
-        arp: bool,
+        effect: Effect,
     ) -> Result<Self, Error> {
         // FIXME: log a warning. it's weird but apparently not an error to have a 0-len sample. yehat has one.
 
@@ -58,7 +60,7 @@ impl Source {
             period,
             samples: f32_samples,
             sample_end: samples.len(),
-            arp: arp,
+            effect,
         })
     }
 }
@@ -87,7 +89,7 @@ impl Iterator for Source {
         };
         self.ptr += 1;
 
-        Some(self.samples[self.ptr - 1])
+        Some(self.samples[self.ptr - 1] * self.effect.volume())
     }
 }
 
@@ -101,22 +103,8 @@ impl rodio::Source for Source {
     }
 
     fn sample_rate(&self) -> u32 {
-        // FIXME: move to ctor
-        // FIXME: not self.rate, self.period
-        let bf = 8363.0 / self.period as f32;
-        // FIXME: not just 4 and 7, read effect.x and effect.y
-        let m3 = 8363.0 / (bf * (2.0f32).powf(4.0 / 12.0));
-        let p5 = 8363.0 / (bf * (2.0f32).powf(7.0 / 12.0));
-        let periods = [self.period, m3 as u32, p5 as u32];
-
-        let period = if self.arp {
-            periods[self.ptr % 3] // FIXME: this probably gets hosed by looping
-        } else {
-            periods[0]
-        };
-
-        let rate: u32 = (7159090.5 / (period as f32 * 2.0)) as u32;
-        rate
+        // FIXME: self.ptr % 3 isn't exactly correct when looping
+        self.effect.arp(self.period, self.ptr % 3) as u32
     }
 
     fn total_duration(&self) -> Option<Duration> {

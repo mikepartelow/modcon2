@@ -1,5 +1,6 @@
 pub mod channel;
 pub mod device;
+pub mod effect;
 pub mod formatter;
 pub mod module;
 pub mod note;

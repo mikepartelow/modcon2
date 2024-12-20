@@ -1,8 +1,9 @@
+use crate::effect::Effect;
 use crate::module::Module;
 
-use crate::pcm;
 use crate::sample::Sample;
 use crate::{device::Device, formatter::RowFormatter};
+use crate::{effect, pcm};
 use log::*;
 use rodio::{OutputStream, Sink};
 use std::collections::HashSet;
@@ -45,48 +46,14 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                     _ => &module.samples[sample_idx],
                 };
 
-                // effects:
-                // yehat: 0, c, e, f (3+),
-                // thraddash: 0, 2, c, e, f
-                // mycon: 0, c, e, f
-                //
-                // hyperspace: 0, c, f - impl 0 next
-                //
-                // kk: 0, 1, 2, 3, 4, 6, a, c, d, e, f
-                let effect = ((ch.effect >> 8) & 0xff) as u8;
-                effects.insert(effect);
-
-                // impl effect 0 - hyperspace!
-
-                let volume_scaling_factor = match effect {
-                    0xc => (ch.effect & 0xff) as f32,
-                    _ => 64.0,
-                } / 64.0;
-                debug!("scaling factor: {:.6}", volume_scaling_factor);
-
-                let mut arp = false;
-                if effect == 0 {
-                    let x = (ch.effect >> 4) & 0xf;
-                    let y = ch.effect & 0xf;
-
-                    if x != 0 || y != 0 {
-                        arp = true;
-                        debug!("effect 0: x={} y={}", x, y)
-                    }
-                }
-
                 let new_source = pcm::Source::new(
                     module.samples[sample_idx].name.to_string(),
-                    &sample
-                        .data
-                        .iter()
-                        .map(|b| (*b * volume_scaling_factor))
-                        .collect::<Vec<f32>>(),
+                    &sample.data,
                     ch.period.into(),
                     sample.is_looped(),
                     sample.loop_offset.into(),
                     sample.loop_length.into(),
-                    arp,
+                    ch.effect,
                 )
                 .expect("FIXME");
 
@@ -131,7 +98,7 @@ pub fn play_sample(sample: &Sample, period: u8, arp: bool) {
         true,
         sample.loop_offset.into(),
         sample.loop_length.into(),
-        arp,
+        Effect::zero(),
     )
     .expect("FIXME");
 
@@ -177,7 +144,7 @@ pub fn play_samples(module: &mut Module, period: u8) {
             false,
             0,
             0,
-            false,
+            Effect::zero(),
         )
         .expect("FIXME");
 
