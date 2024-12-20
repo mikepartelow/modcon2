@@ -57,8 +57,8 @@ impl RowFormatter {
                 format!("{:03}", ch.period).white()
             },
             match ch.effect.kind {
-                Kind::None => format!("{:04x}h", ch.effect.pack()).green(),
-                _ => "     ".green(),
+                Kind::None => "     ".green(),
+                _ => format!("{:04x}h", ch.effect.pack()).green(),
             }
         )
     }

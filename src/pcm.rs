@@ -12,7 +12,7 @@ pub struct Source {
     loop_offset: usize,
     loop_length: usize,
     ptr: usize,
-    period: u32,
+    period: u16,
     samples: Vec<f32>,
 
     effect: Effect,
@@ -37,19 +37,18 @@ impl Source {
     pub fn new(
         name: String,
         samples: &[f32],
-        period: u32,
+        period: u16,
         loop_it: bool,
         loop_offset: usize,
         loop_length: usize,
         effect: Effect,
     ) -> Result<Self, Error> {
-        // FIXME: log a warning. it's weird but apparently not an error to have a 0-len sample. yehat has one.
+        // it's weird but apparently not an error to have a 0-len sample. yehat has one.
 
-        // if samples.is_empty() {
-        //     return Err(Error::Sample("0 length sample".to_string()));
-        // }
-
-        let f32_samples = samples.iter().map(|b| *b / 128.0).collect();
+        let f32_samples = samples
+            .iter()
+            .map(|b| (*b * effect.volume()) / 128.0)
+            .collect();
 
         Ok(Source {
             loop_it,
@@ -89,7 +88,7 @@ impl Iterator for Source {
         };
         self.ptr += 1;
 
-        Some(self.samples[self.ptr - 1] * self.effect.volume())
+        Some(self.samples[self.ptr - 1])
     }
 }
 

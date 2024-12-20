@@ -38,7 +38,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                 };
 
                 if ch.period == 0 {
-                    continue; // avoid divide by zero when computing `rate`
+                    continue;
                 }
 
                 let sample = match ch.sample {
@@ -49,7 +49,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                 let new_source = pcm::Source::new(
                     module.samples[sample_idx].name.to_string(),
                     &sample.data,
-                    ch.period.into(),
+                    ch.period,
                     sample.is_looped(),
                     sample.loop_offset.into(),
                     sample.loop_length.into(),
@@ -60,7 +60,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                 // FIXME: make this more readable, like info!(sample) calls some Sample method
                 if cfg.channels.contains(&chan_idx) {
                     info!(
-                        "latching: {:02x} [{}] v{} f{} ll{} lo{} li{} sl{}",
+                        "latching: {:02x} [{}] v{} f{} ll{} lo{} li{} sl{} e{}",
                         sample_idx,
                         sample.name,
                         sample.volume,
@@ -69,6 +69,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                         sample.loop_offset,
                         sample.is_looped(),
                         sample.data.len(),
+                        ch.effect,
                     );
                     device.latch(chan_idx, new_source, sample_idx);
                 }
@@ -87,14 +88,13 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
     effects
 }
 
-pub fn play_sample(sample: &Sample, period: u8, arp: bool) {
+pub fn play_sample(sample: &Sample, period: u16, arp: bool) {
     let mut device = Device::new(4);
-    let rate: u32 = (7159090.5 / (period as f32 * 2.0)) as u32;
 
     let source = pcm::Source::new(
         sample.name.to_string(),
         &sample.data,
-        rate,
+        period,
         true,
         sample.loop_offset.into(),
         sample.loop_length.into(),
@@ -112,7 +112,7 @@ pub fn play_sample(sample: &Sample, period: u8, arp: bool) {
     debug!("exit2");
 }
 
-pub fn play_samples(module: &mut Module, period: u8) {
+pub fn play_samples(module: &mut Module, period: u16) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
     let _sink = Sink::try_new(&stream_handle).unwrap();
@@ -124,23 +124,10 @@ pub fn play_samples(module: &mut Module, period: u8) {
         let (_stream, stream_handle) = OutputStream::try_default().unwrap();
         let sink = Sink::try_new(&stream_handle).unwrap();
 
-        // https://wiki.multimedia.cx/index.php/Protracker_Module
-        // To get the actual note frequency, divide the Amiga base clock (70ns or 8363*428) by the period number.
-        // https://www.aes.id.au/modformat.html
-        // For PAL machines
-        //   the clock rate is 7093789.2 Hz and for NTSC machines it is
-        //   7159090.5 Hz. When the clock rate is divided by twice the
-        //   period number for the pitch it will give the rate to send the
-        //   data to the channel, eg. for a PAL machine sending a note at
-        //   C2 (period 428), the rate is 7093789.2/856 ~= 8287.1369
-
-        // FIXME: unify with note 123456
-        let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
-
         let source = pcm::Source::new(
             sample.name.to_string(),
             &sample.data,
-            rate,
+            period,
             false,
             0,
             0,
