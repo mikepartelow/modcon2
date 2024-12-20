@@ -1,4 +1,4 @@
-use crate::{effect::Effect, Error};
+use crate::{effect::Effect, sample, Error};
 use rand::Rng;
 use rodio;
 use std::time::Duration;
@@ -78,7 +78,8 @@ impl Iterator for Source {
                 //   length: https://www.aes.id.au/modformat.html
                 // FIXME: validate these leaps of faith
                 self.ptr = self.loop_offset;
-                self.sample_end = self.loop_offset + self.loop_length;
+                // *2 because loop_length is specified in words
+                self.sample_end = self.loop_offset + self.loop_length * 2;
             } else {
                 return None;
             }

@@ -112,7 +112,7 @@ impl Effect {
 
     pub fn volume(&self) -> f32 {
         match self.kind {
-            Kind::SetVolume => self.xy as f32 / 64.0,
+            Kind::SetVolume => self.xy.clamp(0, 64) as f32 / 64.0,
             _ => 1.0,
         }
     }
