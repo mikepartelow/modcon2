@@ -1,9 +1,9 @@
 use crate::effect::Effect;
 use crate::module::Module;
 
+use crate::pcm;
 use crate::sample::Sample;
 use crate::{device::Device, formatter::RowFormatter};
-use crate::{pcm};
 use log::*;
 use rodio::{OutputStream, Sink};
 use std::collections::HashSet;
@@ -33,11 +33,12 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
 
             for (chan_idx, ch) in channels.iter().enumerate() {
                 let sample_idx: usize = match ch.sample {
-                    0 => 0,                        // ch.sample == 0 means "continue playing"
+                    0 => 0,                        // ch.sample == 0 means "reuse sample already playing"
                     _ => (ch.sample - 1) as usize, // ch.sample > 0 refers to our 0-indexed Vec<Sample>
                 };
 
                 if ch.period == 0 {
+                    // ch.period == 0 means "no change to what's playing now"
                     continue;
                 }
 

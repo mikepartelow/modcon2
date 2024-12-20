@@ -1,10 +1,7 @@
-use crate::{
-    effect::{Effect},
-    Error,
-};
+use crate::{effect::Effect, Error};
+use rand::Rng;
 use rodio;
 use std::time::Duration;
-
 pub struct Source {
     pub name: String,
 
