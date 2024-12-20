@@ -3,7 +3,7 @@ use crate::module::Module;
 
 use crate::sample::Sample;
 use crate::{device::Device, formatter::RowFormatter};
-use crate::{effect, pcm};
+use crate::{pcm};
 use log::*;
 use rodio::{OutputStream, Sink};
 use std::collections::HashSet;
@@ -17,7 +17,7 @@ pub struct Config {
 
 pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
     let mut device = Device::new(module.num_channels);
-    let mut effects = HashSet::new();
+    let effects = HashSet::new();
 
     // FIXME: this (tempo) is set by the very first effect in the mod (and then potentially reset later)
     let mut interval = time::interval(cfg.interval);
@@ -88,7 +88,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
     effects
 }
 
-pub fn play_sample(sample: &Sample, period: u16, arp: bool) {
+pub fn play_sample(sample: &Sample, period: u16, _arp: bool) {
     let mut device = Device::new(4);
 
     let source = pcm::Source::new(

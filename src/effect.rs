@@ -111,12 +111,12 @@ impl Effect {
     }
 
     pub fn volume(&self) -> f32 {
-        let v = match self.kind {
+        
+
+        match self.kind {
             Kind::SetVolume => self.xy as f32 / 64.0,
             _ => 1.0,
-        };
-
-        v
+        }
     }
 }
 

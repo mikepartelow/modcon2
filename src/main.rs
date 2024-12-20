@@ -53,7 +53,7 @@ async fn main() {
 
                 println!("oh: {}", sample_num);
 
-                player::play_sample(&sample, period_c3, false);
+                player::play_sample(sample, period_c3, false);
             } else if command == "info" || command == "ii" {
                 println!("title: [{}] ({})", module.title, module.title.len());
                 println!("---");

@@ -1,5 +1,5 @@
 use crate::{
-    effect::{Effect, Kind},
+    effect::{Effect},
     Error,
 };
 use rodio;
@@ -103,7 +103,7 @@ impl rodio::Source for Source {
 
     fn sample_rate(&self) -> u32 {
         // FIXME: self.ptr % 3 isn't exactly correct when looping
-        self.effect.arp(self.period, self.ptr % 3) as u32
+        self.effect.arp(self.period, self.ptr % 3)
     }
 
     fn total_duration(&self) -> Option<Duration> {
