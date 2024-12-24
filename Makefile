@@ -10,7 +10,7 @@ arilou:
 	CHECK_LENGTH=false cargo run ./mods/arilou.mod
 
 hyperspace:
-	TICK_MULTIPLIER=10 cargo run ./mods/hyperspace.mod
+	TICK_MULTIPLIER=11 cargo run ./mods/hyperspace.mod
 
 kk:
 	cargo run ./mods/knulla-kuk.mod

@@ -4,23 +4,21 @@ use crate::module::Module;
 use crate::pcm;
 use crate::sample::Sample;
 use crate::{device::Device, formatter::RowFormatter};
+use core::time;
 use log::*;
 use rodio::{OutputStream, Sink};
 use std::collections::HashSet;
 use std::thread::{self, sleep};
-use tokio::time::{self, Duration};
+use std::time::Duration;
 
 pub struct Config {
     pub channels: Vec<usize>,
     pub interval: Duration,
 }
 
-pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
+pub fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
     let mut device = Device::new(module.num_channels);
     let effects = HashSet::new();
-
-    // FIXME: this (tempo) is set by the very first effect in the mod (and then potentially reset later)
-    let mut interval = time::interval(cfg.interval);
 
     let mut rowfmt = RowFormatter::new(module);
     println!("{}", rowfmt.header());
@@ -76,7 +74,7 @@ pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
                 }
             }
 
-            interval.tick().await; // FIXME: would a sleep be simpler? is any delay even necessary? does playing N ticks of queued audio provide the necessary delay?
+            sleep(cfg.interval);
             trace!("tick");
         }
     }

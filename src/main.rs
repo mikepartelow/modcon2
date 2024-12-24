@@ -9,8 +9,7 @@ use std::time::Duration;
 extern crate log;
 extern crate pretty_env_logger;
 
-#[tokio::main]
-async fn main() {
+fn main() {
     pretty_env_logger::init();
 
     let args: Vec<String> = env::args().collect();
@@ -28,7 +27,7 @@ async fn main() {
         Ok(mut module) => {
             if command.is_empty() {
                 let cfg = make_player_config();
-                let effects = player::play_module(&mut module, cfg).await;
+                let effects = player::play_module(&mut module, cfg);
 
                 let mut effects = effects.into_iter().collect::<Vec<_>>();
                 effects.sort();
@@ -98,6 +97,6 @@ fn make_player_config() -> player::Config {
 
     player::Config {
         channels: chan_vec,
-        interval: Duration::from_millis(6 * tick_multiplier.unwrap()),
+        interval: Duration::from_millis(6 * tick_multiplier.unwrap() - 1),
     }
 }
