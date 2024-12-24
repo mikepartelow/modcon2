@@ -1,5 +1,5 @@
-use crate::{effect::Effect, sample, Error};
-use rand::Rng;
+use crate::{effect::Effect, Error};
+
 use rodio;
 use std::time::Duration;
 pub struct Source {

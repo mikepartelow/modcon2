@@ -1,7 +1,7 @@
 use crate::pattern::Pattern;
 use crate::sample::Sample;
 use log::*;
-use rand::Rng;
+
 use std::env;
 use std::fmt::{self};
 use std::io::Read;
