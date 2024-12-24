@@ -1,10 +1,13 @@
+use crate::effect::Effect;
 use crate::module::Module;
 
 use crate::pcm;
+use crate::sample::Sample;
 use crate::{device::Device, formatter::RowFormatter};
 use log::*;
 use rodio::{OutputStream, Sink};
-use std::thread;
+use std::collections::HashSet;
+use std::thread::{self, sleep};
 use tokio::time::{self, Duration};
 
 pub struct Config {
@@ -12,8 +15,9 @@ pub struct Config {
     pub interval: Duration,
 }
 
-pub async fn play_module(module: &mut Module, cfg: Config) {
+pub async fn play_module(module: &mut Module, cfg: Config) -> HashSet<u8> {
     let mut device = Device::new(module.num_channels);
+    let effects = HashSet::new();
 
     // FIXME: this (tempo) is set by the very first effect in the mod (and then potentially reset later)
     let mut interval = time::interval(cfg.interval);
@@ -29,12 +33,13 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
 
             for (chan_idx, ch) in channels.iter().enumerate() {
                 let sample_idx: usize = match ch.sample {
-                    0 => 0,                        // ch.sample == 0 means "continue playing"
+                    0 => 0,                        // ch.sample == 0 means "reuse sample already playing"
                     _ => (ch.sample - 1) as usize, // ch.sample > 0 refers to our 0-indexed Vec<Sample>
                 };
 
                 if ch.period == 0 {
-                    continue; // avoid divide by zero when computing `rate`
+                    // ch.period == 0 means "no change to what's playing now"
+                    continue;
                 }
 
                 let sample = match ch.sample {
@@ -42,23 +47,21 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                     _ => &module.samples[sample_idx],
                 };
 
-                // FIXME: refactor, remove magic numbers, and get the right magic numbers, this one isn't it
-                // FIXME: note 123456
-                let rate: u32 = (7159090.5 / (ch.period as f32 * 2.0)) as u32;
-
                 let new_source = pcm::Source::new(
                     module.samples[sample_idx].name.to_string(),
                     &sample.data,
-                    rate,
+                    ch.period,
                     sample.is_looped(),
                     sample.loop_offset.into(),
+                    sample.loop_length.into(),
+                    ch.effect,
                 )
                 .expect("FIXME");
 
                 // FIXME: make this more readable, like info!(sample) calls some Sample method
                 if cfg.channels.contains(&chan_idx) {
                     info!(
-                        "latching: {:02x} [{}] v{} f{} ll{} lo{} li{}",
+                        "latching: {:02x} [{}] v{} f{} ll{} lo{} li{} sl{} e{}",
                         sample_idx,
                         sample.name,
                         sample.volume,
@@ -66,8 +69,9 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
                         sample.loop_length,
                         sample.loop_offset,
                         sample.is_looped(),
+                        sample.data.len(),
+                        ch.effect,
                     );
-                    assert!(!sample.data.is_empty());
                     device.latch(chan_idx, new_source, sample_idx);
                 }
             }
@@ -81,9 +85,35 @@ pub async fn play_module(module: &mut Module, cfg: Config) {
     device.stop_all();
     device.wait();
     debug!("exit2");
+
+    effects
 }
 
-pub fn play_samples(module: &mut Module, period: u8) {
+pub fn play_sample(sample: &Sample, period: u16, _arp: bool) {
+    let mut device = Device::new(4);
+
+    let source = pcm::Source::new(
+        sample.name.to_string(),
+        &sample.data,
+        period,
+        true,
+        sample.loop_offset.into(),
+        sample.loop_length.into(),
+        Effect::zero(),
+    )
+    .expect("FIXME");
+
+    device.latch(0, source, 1);
+
+    sleep(Duration::from_secs(30));
+
+    debug!("exit1");
+    device.stop_all();
+    device.wait();
+    debug!("exit2");
+}
+
+pub fn play_samples(module: &mut Module, period: u16) {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
     let _sink = Sink::try_new(&stream_handle).unwrap();
@@ -95,21 +125,16 @@ pub fn play_samples(module: &mut Module, period: u8) {
         let (_stream, stream_handle) = OutputStream::try_default().unwrap();
         let sink = Sink::try_new(&stream_handle).unwrap();
 
-        // https://wiki.multimedia.cx/index.php/Protracker_Module
-        // To get the actual note frequency, divide the Amiga base clock (70ns or 8363*428) by the period number.
-        // https://www.aes.id.au/modformat.html
-        // For PAL machines
-        //   the clock rate is 7093789.2 Hz and for NTSC machines it is
-        //   7159090.5 Hz. When the clock rate is divided by twice the
-        //   period number for the pitch it will give the rate to send the
-        //   data to the channel, eg. for a PAL machine sending a note at
-        //   C2 (period 428), the rate is 7093789.2/856 ~= 8287.1369
-
-        // FIXME: unify with note 123456
-        let rate = (7093789.2 / ((period as u16 * 2) as f32)) as u32;
-
-        let source =
-            pcm::Source::new(sample.name.to_string(), &sample.data, rate, false, 0).expect("FIXME");
+        let source = pcm::Source::new(
+            sample.name.to_string(),
+            &sample.data,
+            period,
+            false,
+            0,
+            0,
+            Effect::zero(),
+        )
+        .expect("FIXME");
 
         sink.append(source);
         sink.sleep_until_end();

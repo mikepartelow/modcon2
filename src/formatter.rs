@@ -1,3 +1,4 @@
+use crate::effect::Kind;
 use crate::module::Module;
 
 use crate::channel::Channel;
@@ -55,11 +56,10 @@ impl RowFormatter {
             } else {
                 format!("{:03}", ch.period).white()
             },
-            if ch.effect == 0 {
-                "     ".green()
-            } else {
-                format!("{:04x}h", ch.effect).green()
-            },
+            match ch.effect.kind {
+                Kind::None => "     ".green(),
+                _ => format!("{:04x}h", ch.effect.pack()).green(),
+            }
         )
     }
 }

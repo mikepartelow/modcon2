@@ -28,10 +28,32 @@ async fn main() {
         Ok(mut module) => {
             if command.is_empty() {
                 let cfg = make_player_config();
-                player::play_module(&mut module, cfg).await;
+                let effects = player::play_module(&mut module, cfg).await;
+
+                let mut effects = effects.into_iter().collect::<Vec<_>>();
+                effects.sort();
+
+                for effect in effects {
+                    println!(" effect: {:04x}", effect);
+                }
             } else if command == "samples" || command == "ss" {
                 let period_c3 = 214;
                 player::play_samples(&mut module, period_c3);
+            } else if command == "as" {
+                let sample_num = env::var("SAMPLE_NUM")
+                    .unwrap()
+                    .parse::<usize>()
+                    .unwrap()
+                    .saturating_sub(1);
+                let sample = &module.samples[sample_num];
+
+                let period_c3 = 214;
+                // let semi_x = 4;
+                // let semi_y = 7;
+
+                println!("oh: {}", sample_num);
+
+                player::play_sample(sample, period_c3, false);
             } else if command == "info" || command == "ii" {
                 println!("title: [{}] ({})", module.title, module.title.len());
                 println!("---");
