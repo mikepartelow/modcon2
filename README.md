@@ -2,7 +2,7 @@
 
 An Amiga module player in Rust. 
 
-More FIXMEs than tests, unfortunately. Published prematurely so I can blog about how I got here.
+More FIXMEs than tests, unfortunately. Published prematurely so I could [blog about how I got here](https://mikepartelow.github.io/2024/12/14/modcon2.html).
 
 Use [ProTracker 2 clone](https://16-bits.org/pt2.php) to hear how the music is actually supposed to sound - more or less.
 
